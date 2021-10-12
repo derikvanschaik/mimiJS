@@ -1,3 +1,21 @@
+body{
+    font-family: Arial, Helvetica, sans-serif;
+    width: 95%;
+    background-color: black;
+    color: white; 
+}
+.page-header{
+    text-align: center;
+}
+.mimi-container{
+    background-color: white; 
+    /* how i will center the div for now  */
+    margin-left: 10%;
+    padding: 3% 2% 3% 2%;
+    border-radius: 2em; 
+}
 #mimi-canvas{
-    border: 2px solid black; 
-} 
+    margin: auto 0;
+    margin-left: 5%; 
+    border: 2px solid black;
+}
