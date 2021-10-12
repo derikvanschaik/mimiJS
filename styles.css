@@ -11,11 +11,9 @@ body{
     background-color: white; 
     /* how i will center the div for now  */
     margin-left: 10%;
-    padding: 3% 2% 3% 2%;
     border-radius: 2em; 
 }
 #mimi-canvas{
-    margin: auto 0;
-    margin-left: 5%; 
+    margin: 2% 3% 2% 3%; 
     border: 2px solid black;
 }
