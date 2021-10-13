@@ -1,4 +1,4 @@
-const getCursorPosition = (canvas, event) => {
+const getCursorPosition = (canvas, event) => { 
     const rect = canvas.getBoundingClientRect(); 
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -20,10 +20,17 @@ class TextObject{
         this.y = y;
         this.currentLine = 0;
         this.lines = ['']; // default
-        this.bbox; 
     }
     append(text){ 
-        this.lines[this.currentLine] = text; 
+        this.lines[this.currentLine] = text;
+    }
+    inBbox(ctx, x, y){
+        const text = this.lines[this.currentLine]; 
+        const [w, h] = getFontDimensions(ctx, text);
+        console.log(w, h, x, y, this.x, this.y);
+        // when creating the boxes, we add a padding of 10 to the y click so we must account for this
+        // when judging wether the click was in the bounding box 
+        return x >= this.x && x <= this.x + w && y <= this.y + 10 && y >= this.y + 10 - h;   
     }
 }
 
@@ -54,11 +61,12 @@ window.onload = () =>{
         if (userInput.value.length > 0 ){ 
             clearInput(userInput);
         }
-        const existingTextObject = textObjects.find(textObj => textObj.x === x && textObj.y === y); 
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
             textObjects.push(new TextObject(x, y) );
             return userInput.focus(); 
         }
+        console.log("You just clicked inside a textbox!"); 
            
     });
 
@@ -79,8 +87,9 @@ window.onload = () =>{
         
         const [width, height] = getFontDimensions(ctx, curText); 
         // // fill new rect and text 
+        const pad = 10; 
         ctx.fillText(curText , clickX, clickY); 
-        ctx.strokeRect(clickX, clickY + 10, width, -height);     
+        ctx.strokeRect(clickX, clickY + pad, width, -height);     
     }); 
 
 }
