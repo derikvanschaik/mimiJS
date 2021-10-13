@@ -4,7 +4,7 @@ const getCursorPosition = (canvas, event) => {
     const y = event.clientY - rect.top;
     return [x, y]; 
 }
-const clearInput = (inputEl) =>{
+const clearInput = (inputEl) =>{ 
     inputEl.value = ""; 
 }
 // returns width and height of text 
@@ -19,10 +19,11 @@ class TextObject{
         this.x = x; 
         this.y = y;
         this.currentLine = 0;
-        this.lines = []; 
+        this.lines = ['']; // default
+        this.bbox; 
     }
-    getInfo(){
-        console.log(this.x, this.y, this.currentLine, this.lines); 
+    append(text){ 
+        this.lines[this.currentLine] = text; 
     }
 }
 
@@ -48,32 +49,38 @@ window.onload = () =>{
     canvas.addEventListener("click", (event)=>{
 
         const [x,y] = getCursorPosition(canvas, event);
-        [clickX, clickY] = [x, y];
+        [clickX, clickY] = [x, y]; 
 
-        if (userInput.value.length > 0){
+        if (userInput.value.length > 0 ){ 
             clearInput(userInput);
         }
         const existingTextObject = textObjects.find(textObj => textObj.x === x && textObj.y === y); 
         if (!existingTextObject){
-            textObjects.push(new TextObject(x, y) ); 
+            textObjects.push(new TextObject(x, y) );
+            return userInput.focus(); 
         }
-        userInput.focus();  
+           
     });
 
     userInput.addEventListener("input", ()=>{
-        
-        const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY); 
-        if (existingTextObject){
-            existingTextObject.getInfo(); 
-        }else{
-            console.log("no existing text object"); 
+        const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY);
+        const curLine = existingTextObject.currentLine; 
+        if (existingTextObject.lines[curLine] === ""){
+            existingTextObject.append(userInput.value);  
         }
-        const [width, height] = getFontDimensions(ctx, userInput.value); 
-        // clear previous rect 
-        ctx.clearRect(clickX, clickY + 10, width, -height);   
-        // fill new rect and text 
-        ctx.fillText(userInput.value, clickX, clickY); 
-        ctx.strokeRect(clickX, clickY + 10, width, -height);    
+        const prevText = existingTextObject.lines[curLine]; 
+        existingTextObject.append(userInput.value);  
+        const curText = existingTextObject.lines[curLine]; 
+
+        const [prevWidth, prevHeight] = getFontDimensions(ctx, prevText); 
+        // clearing previous rect drawn, the magic numbers were found through testing what works
+        // and I expect them to be very sensitive to changes made 
+        ctx.clearRect(clickX , clickY + 12, prevWidth + 5, -prevHeight - 5);
+        
+        const [width, height] = getFontDimensions(ctx, curText); 
+        // // fill new rect and text 
+        ctx.fillText(curText , clickX, clickY); 
+        ctx.strokeRect(clickX, clickY + 10, width, -height);     
     }); 
 
 }
