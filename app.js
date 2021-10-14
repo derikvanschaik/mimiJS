@@ -62,7 +62,7 @@ window.onload = () =>{
         }
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
-            textObjects.push(new TextObject(x, y) );
+            textObjects.push(new TextObject(x, y) ); 
             return userInput.focus(); 
         }
         const curText = existingTextObject.lines[existingTextObject.currentLine]; 
@@ -93,7 +93,8 @@ window.onload = () =>{
         // // fill new rect and text 
         const pad = 10; 
         ctx.fillText(curText , clickX, clickY); 
-        ctx.strokeRect(clickX, clickY + pad, width, -height);     
+        ctx.strokeRect(clickX, clickY + pad, width, -height);
+        const text = "this should only be here in drawboxclass branch"; 
     }); 
 
 }
