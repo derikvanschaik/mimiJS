@@ -21,8 +21,11 @@ class TextObject{
         this.currentLine = 0;
         this.lines = ['']; // default
     }
-    append(text){ 
-        this.lines[this.currentLine] = text;
+    replaceLines(newLines){ 
+        this.lines = newLines; 
+    }
+    replaceLastLine(text){ 
+        this.lines[this.currentLine] = text; 
     }
     inBbox(ctx, x, y){
         const text = this.lines[this.currentLine]; 
@@ -30,6 +33,15 @@ class TextObject{
         // when creating the boxes, we add a padding of 10 to the y click so we must account for this
         // when judging wether the click was in the bounding box 
         return x >= this.x && x <= this.x + w && y <= this.y + 10 && y >= this.y + 10 - h;   
+    }
+    drawLine(ctx, lineNum, text){
+        const [_, height] = getFontDimensions(ctx, text); 
+        ctx.fillText(text , this.x, this.y + height*lineNum); 
+    }
+    drawLines(ctx){
+        this.lines.forEach((line, idx) =>{
+            this.drawLine(ctx, idx, line);   
+        }); 
     }
 }
 
@@ -42,15 +54,15 @@ window.onload = () =>{
     ctx.font = "15pt Comic Sans MS";
 
     // global variables
+    const SPECIAL_CHAR = '~'; // special character we will split lines by 
     let clickX, clickY;
     let textObjects = []; 
     
     // event handlers
     window.addEventListener("keydown" , (event) =>{
         if (event.key === "Enter"){
-            const [_, height] = getFontDimensions(ctx, userInput.value);   
-            clickY += height; // append to new line 
-        }
+            userInput.value += SPECIAL_CHAR;
+        } 
     }); 
     canvas.addEventListener("click", (event)=>{
 
@@ -76,25 +88,21 @@ window.onload = () =>{
 
     userInput.addEventListener("input", ()=>{
         const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY);
-        const curLine = existingTextObject.currentLine; 
-        if (existingTextObject.lines[curLine] === ""){
-            existingTextObject.append(userInput.value);  
-        }
-        const prevText = existingTextObject.lines[curLine]; 
-        existingTextObject.append(userInput.value);  
-        const curText = existingTextObject.lines[curLine]; 
+        existingTextObject.lines = userInput.value.split(SPECIAL_CHAR);
+        existingTextObject.drawLines(ctx);  
 
-        const [prevWidth, prevHeight] = getFontDimensions(ctx, prevText); 
-        // clearing previous rect drawn, the magic numbers were found through testing what works
-        // and I expect them to be very sensitive to changes made 
-        ctx.clearRect(clickX , clickY + 12, prevWidth + 5, -prevHeight - 5);
+        // const [prevWidth, prevHeight] = getFontDimensions(ctx, prevText);
+        // existingTextObject.lines = userInput.value.split(SPECIAL_CHAR); 
+        // // clearing previous rect drawn, the magic numbers were found through testing what works
+        // // and I expect them to be very sensitive to changes made 
+        // // ctx.clearRect(clickX , clickY + 12, prevWidth + 5, -prevHeight - 5); 
         
-        const [width, height] = getFontDimensions(ctx, curText); 
-        // // fill new rect and text 
-        const pad = 10; 
-        ctx.fillText(curText , clickX, clickY); 
-        ctx.strokeRect(clickX, clickY + pad, width, -height);
-        const text = "this should only be here in drawboxclass branch"; 
+        // const [width, height] = getFontDimensions(ctx, existingTextObject.lines[CURLINE]);   
+        // // // fill new rect and text 
+        // const pad = 10;
+        // existingTextObject.drawLine(ctx);    
+        // // ctx.fillText(curText , clickX, clickY); 
+        // ctx.strokeRect(clickX, clickY + pad, width, -height); 
     }); 
 
 }
