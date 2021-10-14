@@ -20,6 +20,7 @@ class TextObject{
         this.y = y;
         this.currentLine = 0;
         this.lines = ['']; // default
+        this.maxWidth; 
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -28,22 +29,55 @@ class TextObject{
         this.lines[this.currentLine] = text; 
     }
     inBbox(ctx, x, y){
-        const text = this.lines[this.currentLine]; 
-        const [w, h] = getFontDimensions(ctx, text);
+        const text = this.lines[this.maxWidth.idx]; 
+        const [w, lineHeight] = getFontDimensions(ctx, text);
+        const h = lineHeight * this.lines.length;
+        console.log(h, lineHeight, this.lines.length);
+        console.log(x, y); 
         // when creating the boxes, we add a padding of 10 to the y click so we must account for this
         // when judging wether the click was in the bounding box 
-        return x >= this.x && x <= this.x + w && y <= this.y + 10 && y >= this.y + 10 - h;   
+        return x >= this.x && x <= this.x + w && y <= this.y && y >= this.y- h;     
     }
     drawLine(ctx, lineNum, text){
         const [_, height] = getFontDimensions(ctx, text); 
         ctx.fillText(text , this.x, this.y + height*lineNum); 
     }
     drawLines(ctx){
+        this.maxWidth = {length: 0, idx: 0}; 
         this.lines.forEach((line, idx) =>{
-            this.drawLine(ctx, idx, line);   
+            this.drawLine(ctx, idx, line);
+            if (line.length > this.maxWidth.length){
+                this.maxWidth.length = line.length; 
+                this.maxWidth.idx = idx; 
+            }
         }); 
     }
+    clearBoxRect(ctx){ 
+        const text = this.lines[this.maxWidth.idx]; 
+        const [w, lineHeight] = getFontDimensions(ctx, text);
+        // clear rect needs a bit more padding than stroke rect so that's what these magic 
+        // numbers are about, I found them through experimentation but I imagine its because 
+        // of the clear rect doesn't acount for line width of the actual box 
+        const pad = 15 + ctx.lineWidth; 
+        ctx.clearRect(this.x - ctx.lineWidth , this.y - pad, w + pad + 2 , lineHeight* (this.lines.length) + 2);   
+    }
+    drawBox(ctx){
+        const text = this.lines[this.maxWidth.idx]; 
+        const [w, lineHeight] = getFontDimensions(ctx, text);
+        const pad = 15; 
+        ctx.strokeRect(this.x,this.y - pad, w + pad , lineHeight* (this.lines.length) ); 
+    }
+    drawTextAndLines(ctx, newLines){
+        try{
+            this.clearBoxRect(ctx);
+        }catch(e){
+        }
+        this.lines = newLines;  
+        this.drawLines(ctx);
+        this.drawBox(ctx);  
+    } 
 }
+
 
 window.onload = () =>{
     const userInput = document.querySelector("input"); 
@@ -62,6 +96,9 @@ window.onload = () =>{
     window.addEventListener("keydown" , (event) =>{
         if (event.key === "Enter"){
             userInput.value += SPECIAL_CHAR;
+            const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY); 
+            const newLines = userInput.value.split(SPECIAL_CHAR);
+            existingTextObject.drawTextAndLines(ctx, newLines); 
         } 
     }); 
     canvas.addEventListener("click", (event)=>{
@@ -77,32 +114,15 @@ window.onload = () =>{
             textObjects.push(new TextObject(x, y) ); 
             return userInput.focus(); 
         }
-        const curText = existingTextObject.lines[existingTextObject.currentLine]; 
-        const [width, height] = getFontDimensions(ctx, curText); 
-        // // fill new rect and text 
-        const pad = 10;
-        ctx.fillRect(existingTextObject.x , existingTextObject.y + pad, width, -height);
-        
+        console.log("clicked in an already present box"); 
            
     });
 
     userInput.addEventListener("input", ()=>{
-        const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY);
-        existingTextObject.lines = userInput.value.split(SPECIAL_CHAR);
-        existingTextObject.drawLines(ctx);  
 
-        // const [prevWidth, prevHeight] = getFontDimensions(ctx, prevText);
-        // existingTextObject.lines = userInput.value.split(SPECIAL_CHAR); 
-        // // clearing previous rect drawn, the magic numbers were found through testing what works
-        // // and I expect them to be very sensitive to changes made 
-        // // ctx.clearRect(clickX , clickY + 12, prevWidth + 5, -prevHeight - 5); 
-        
-        // const [width, height] = getFontDimensions(ctx, existingTextObject.lines[CURLINE]);   
-        // // // fill new rect and text 
-        // const pad = 10;
-        // existingTextObject.drawLine(ctx);    
-        // // ctx.fillText(curText , clickX, clickY); 
-        // ctx.strokeRect(clickX, clickY + pad, width, -height); 
-    }); 
+        const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY);
+        const newLines = userInput.value.split(SPECIAL_CHAR);
+        existingTextObject.drawTextAndLines(ctx, newLines);  
+    });  
 
 }
