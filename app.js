@@ -87,6 +87,7 @@ window.onload = () =>{
     const userInput = document.querySelector("input"); 
     const canvas = document.getElementById("mimi-canvas");
     const ctx = canvas.getContext("2d");
+    const del = document.querySelector("#delete"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -106,7 +107,7 @@ window.onload = () =>{
             existingTextObject.drawTextAndLines(ctx, newLines); 
         } 
     }); 
-    canvas.addEventListener("click", (event)=>{
+    canvas.addEventListener("click", (event)=>{ 
 
         const [x,y] = getCursorPosition(canvas, event);
         [clickX, clickY] = [x, y]; 
@@ -132,9 +133,7 @@ window.onload = () =>{
             // fill input with current lines in case they wish to add or delete the text within box 
             userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
         }
-        userInput.focus(); 
-        
-           
+        userInput.focus();    
     });
 
     userInput.addEventListener("input", ()=>{
@@ -148,6 +147,17 @@ window.onload = () =>{
         const newLines = userInput.value.split(SPECIAL_CHAR);
         existingTextObject.drawTextAndLines(ctx, newLines);
         ctx.strokeStyle = "#000000"; 
-    });  
+    });
+
+    del.addEventListener("click", ()=>{
+        selectedTextObjects.forEach( (textObject) =>{
+            // clear from canvas 
+            textObject.clearBoxRect(ctx);
+            // remove all references 
+            selectedTextObjects = selectedTextObjects.filter(obj => obj !== textObject); 
+            textObjects = textObjects.filter(obj => obj !== textObject);  
+        });
+        
+    }); 
 
 }
