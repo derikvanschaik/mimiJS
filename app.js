@@ -1,4 +1,4 @@
-const getCursorPosition = (canvas, event) => { 
+const getCursorPosition = (canvas, event) => {  
     const rect = canvas.getBoundingClientRect(); 
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
@@ -81,13 +81,21 @@ class TextObject{
         this.selected = !this.selected; 
     }
 }
-
+const drawLine = (ctx, from, to) =>{ 
+    const [from_x, from_y] = from; 
+    const [to_x, to_y] = to; 
+    ctx.beginPath();
+    ctx.moveTo(from_x, from_y);
+    ctx.lineTo(to_x, to_y); 
+    ctx.stroke();
+}
 
 window.onload = () =>{
     const userInput = document.querySelector("input"); 
     const canvas = document.getElementById("mimi-canvas");
     const ctx = canvas.getContext("2d");
-    const del = document.querySelector("#delete"); 
+    const del = document.querySelector("#delete");
+    const link = document.querySelector("#link"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -96,7 +104,14 @@ window.onload = () =>{
     const SPECIAL_CHAR = '~'; // special character we will split lines by 
     let clickX, clickY;
     let textObjects = [];
-    let selectedTextObjects = []; 
+    let selectedTextObjects = [];
+    // HELP FOR THE USER 
+    const helpfulTextObj = new TextObject(400,100); 
+    helpfulTextObj.lines = ["To make a textbox, click anywhere and begin typing.",
+                            "To delete, click on the textbox and press 'delete' ", 
+                            "To add more text to me, click on textbox and begin typing"]; 
+    textObjects.push(helpfulTextObj); 
+    helpfulTextObj.drawTextAndLines(ctx, helpfulTextObj.lines);
     
     // event handlers
     window.addEventListener("keydown" , (event) =>{
@@ -157,7 +172,25 @@ window.onload = () =>{
             selectedTextObjects = selectedTextObjects.filter(obj => obj !== textObject); 
             textObjects = textObjects.filter(obj => obj !== textObject);  
         });
-        
+        clearInput(userInput); 
+    });
+
+    link.addEventListener("click", ()=>{
+        if (selectedTextObjects.length !== 2){
+            return console.log("can only link 2 text objects at a time"); 
+        }
+        const [textOne, textTwo] = selectedTextObjects; 
+        const from = [textOne.x, textOne.y]; 
+        const to = [textTwo.x, textTwo.y]; 
+        drawLine(ctx, from, to);
+        // delete and redraw textboxes 
+        textOne.drawTextAndLines(ctx, textOne.lines); 
+        textTwo.drawTextAndLines(ctx, textTwo.lines);
+        // deselect 
+        textOne.toggleSelected(); 
+        textTwo.toggleSelected();
+        // remove selected references
+        selectedTextObjects = []; 
     }); 
 
 }
