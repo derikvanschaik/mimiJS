@@ -20,7 +20,8 @@ class TextObject{
         this.y = y;
         this.currentLine = 0;
         this.lines = ['']; // default
-        this.maxWidth; 
+        this.maxWidth = {length: 0, idx: 0};
+        this.selected = false; 
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -32,10 +33,8 @@ class TextObject{
         const text = this.lines[this.maxWidth.idx]; 
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const h = lineHeight * this.lines.length;
-        console.log(h, lineHeight, this.lines.length);
-        console.log(x, y);
         const pad = 15;  
-        return x >= this.x && x <= this.x + w + pad && y >= this.y - pad && y <= this.y + h;       
+        return x >= this.x && x <= this.x + w + pad && y >= this.y - pad && y <= this.y + h -pad;       
     }
     drawLine(ctx, lineNum, text){
         const [_, height] = getFontDimensions(ctx, text); 
@@ -74,7 +73,13 @@ class TextObject{
         this.lines = newLines;  
         this.drawLines(ctx);
         this.drawBox(ctx);  
-    } 
+    }
+    isSelected(){
+        return this.selected === true;   
+    }
+    toggleSelected(){
+        this.selected = !this.selected; 
+    }
 }
 
 
@@ -89,7 +94,8 @@ window.onload = () =>{
     // global variables
     const SPECIAL_CHAR = '~'; // special character we will split lines by 
     let clickX, clickY;
-    let textObjects = []; 
+    let textObjects = [];
+    let selectedTextObjects = []; 
     
     // event handlers
     window.addEventListener("keydown" , (event) =>{
@@ -110,18 +116,38 @@ window.onload = () =>{
         }
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
-            textObjects.push(new TextObject(x, y) ); 
-            return userInput.focus(); 
+            textObjects.push(new TextObject(x, y) );  
+        }else{
+            // user clicked on an already existing box 
+            existingTextObject.toggleSelected();
+            if (existingTextObject.isSelected() ){
+                selectedTextObjects.push(existingTextObject); 
+                ctx.strokeStyle = "red";
+            }else{
+                selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
+                ctx.strokeStyle = "#000000"; 
+            }
+            existingTextObject.drawTextAndLines(ctx, existingTextObject.lines);  
+            ctx.strokeStyle = "#000000";   // reset global ctx strokeStyle
+            // fill input with current lines in case they wish to add or delete the text within box 
+            userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
         }
-        console.log("clicked in an already present box"); 
+        userInput.focus(); 
+        
            
     });
 
     userInput.addEventListener("input", ()=>{
 
-        const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY);
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        clickX = existingTextObject.x; 
+        clickY = existingTextObject.y;  
+        if (existingTextObject.isSelected() ){
+            ctx.strokeStyle = "red"; 
+        }
         const newLines = userInput.value.split(SPECIAL_CHAR);
-        existingTextObject.drawTextAndLines(ctx, newLines);  
+        existingTextObject.drawTextAndLines(ctx, newLines);
+        ctx.strokeStyle = "#000000"; 
     });  
 
 }
