@@ -27,7 +27,6 @@ class TextObject{
     inBbox(ctx, x, y){
         const text = this.lines[this.currentLine]; 
         const [w, h] = getFontDimensions(ctx, text);
-        console.log(w, h, x, y, this.x, this.y);
         // when creating the boxes, we add a padding of 10 to the y click so we must account for this
         // when judging wether the click was in the bounding box 
         return x >= this.x && x <= this.x + w && y <= this.y + 10 && y >= this.y + 10 - h;   
@@ -66,7 +65,12 @@ window.onload = () =>{
             textObjects.push(new TextObject(x, y) );
             return userInput.focus(); 
         }
-        console.log("You just clicked inside a textbox!"); 
+        const curText = existingTextObject.lines[existingTextObject.currentLine]; 
+        const [width, height] = getFontDimensions(ctx, curText); 
+        // // fill new rect and text 
+        const pad = 10;
+        ctx.fillRect(existingTextObject.x , existingTextObject.y + pad, width, -height);
+        
            
     });
 
