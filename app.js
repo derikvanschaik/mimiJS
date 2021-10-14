@@ -33,10 +33,9 @@ class TextObject{
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const h = lineHeight * this.lines.length;
         console.log(h, lineHeight, this.lines.length);
-        console.log(x, y); 
-        // when creating the boxes, we add a padding of 10 to the y click so we must account for this
-        // when judging wether the click was in the bounding box 
-        return x >= this.x && x <= this.x + w && y <= this.y && y >= this.y- h;     
+        console.log(x, y);
+        const pad = 15;  
+        return x >= this.x && x <= this.x + w + pad && y >= this.y - pad && y <= this.y + h;       
     }
     drawLine(ctx, lineNum, text){
         const [_, height] = getFontDimensions(ctx, text); 
@@ -65,7 +64,7 @@ class TextObject{
         const text = this.lines[this.maxWidth.idx]; 
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const pad = 15; 
-        ctx.strokeRect(this.x,this.y - pad, w + pad , lineHeight* (this.lines.length) ); 
+        ctx.strokeRect(this.x, this.y - pad, w + pad , lineHeight* (this.lines.length) ); 
     }
     drawTextAndLines(ctx, newLines){
         try{
