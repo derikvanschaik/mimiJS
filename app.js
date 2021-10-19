@@ -21,7 +21,8 @@ class TextObject{
         this.currentLine = 0;
         this.lines = ['']; // default
         this.maxWidth = {length: 0, idx: 0};
-        this.selected = false; 
+        this.selected = false;
+        this.linkedTo = [];   
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -105,6 +106,7 @@ window.onload = () =>{
     let clickX, clickY;
     let textObjects = [];
     let selectedTextObjects = [];
+    let lineObjects = []; 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
     helpfulTextObj.lines = ["To make a textbox, click anywhere and begin typing.",
@@ -165,13 +167,59 @@ window.onload = () =>{
     });
 
     del.addEventListener("click", ()=>{
-        selectedTextObjects.forEach( (textObject) =>{
-            // clear from canvas 
-            textObject.clearBoxRect(ctx);
-            // remove all references 
-            selectedTextObjects = selectedTextObjects.filter(obj => obj !== textObject); 
-            textObjects = textObjects.filter(obj => obj !== textObject);  
-        });
+        // if there are no linked textboxes within the selected textboxes 
+        if ( !selectedTextObjects.some( textbox => textbox.linkedTo) ){ 
+            selectedTextObjects.forEach( (textObject) =>{
+                // clear from canvas 
+                textObject.clearBoxRect(ctx); 
+            });
+            selectedTextObjects.forEach( (textbox) =>{
+                // filter out all selected text object from textobjects array  
+                textObjects = textObjects.filter( textobj => textobj !== textbox); 
+            }); 
+            // else clear the entire canvas, only draw the lines which are not connected 
+            // to boxes that are selected. Then need to draw remaining lines onto canvas
+            // and the remaining boxes 
+        }else{
+            // clear canvas 
+            ctx.clearRect(0 ,0, canvas.width, canvas.height); 
+            // get to lines that are to be deleted 
+            let linesToDelete = []; 
+            selectedTextObjects.filter( t => t.linkedTo.length > 0 )
+                               .map( t=> t.linkedTo) 
+                               .forEach( arrayOfLineObjs =>{
+                                   arrayOfLineObjs.forEach( lineObj=>{
+                                       linesToDelete.push(lineObj); 
+                                   }); 
+                               }); 
+            // remove these lines from array  
+            lineObjects = lineObjects.filter( l => !linesToDelete.includes(l));
+            lineObjects.forEach( l =>{
+                // draw remaining lines 
+                drawLine(ctx, [l.fromX, l.fromY], [l.toX, l.toY]); 
+            }); 
+            // filter out selected textboxes from textbox objects array 
+            textObjects = textObjects.filter( t => !selectedTextObjects.includes(t));
+            // draw remaining textbox objects 
+            textObjects.forEach( t =>{
+                t.drawTextAndLines(ctx, t.lines); 
+            });
+            // update all remaining linkedTo properties
+            // will need to test this thoroughly  
+            textObjects.forEach( t =>{
+                let newLinkedTo = []; 
+                t.linkedTo.forEach(lineObj =>{
+                    const existingLineObj = lineObjects.find(l => l === lineObj);
+                    if (existingLineObj){
+                        newLinkedTo.push(existingLineObj); 
+                    }
+                });
+                // reupdate 
+                t.linkedTo = newLinkedTo; 
+            }); 
+
+        }
+        selectedTextObjects = []; 
         clearInput(userInput); 
     });
 
@@ -179,9 +227,12 @@ window.onload = () =>{
         if (selectedTextObjects.length !== 2){
             return console.log("can only link 2 text objects at a time"); 
         }
-        const [textOne, textTwo] = selectedTextObjects; 
+        const [textOne, textTwo] = selectedTextObjects;
+        // init a line object 
+        const lineObj = {fromX: textOne.x, fromY: textOne.y, toX: textTwo.x, toY: textTwo.y};
+        lineObjects.push(lineObj); 
         const from = [textOne.x, textOne.y]; 
-        const to = [textTwo.x, textTwo.y]; 
+        const to = [textTwo.x, textTwo.y];  
         drawLine(ctx, from, to);
         // delete and redraw textboxes 
         textOne.drawTextAndLines(ctx, textOne.lines); 
@@ -190,7 +241,9 @@ window.onload = () =>{
         textOne.toggleSelected(); 
         textTwo.toggleSelected();
         // remove selected references
-        selectedTextObjects = []; 
+        selectedTextObjects = [];
+        textOne.linkedTo.push(lineObj); 
+        textTwo.linkedTo.push(lineObj);  
     }); 
 
 }
