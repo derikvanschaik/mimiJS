@@ -19,12 +19,14 @@ class TextObject{
         this.x = x; 
         this.y = y;
         this.lines = ['']; // default
-        this.maxWidth = {length: 0, idx: 0};
         this.selected = false;
         this.linkedTo = [];   
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
+    }
+    getLastLine(){
+        return this.lines[this.lines.length -1]; 
     }
     replaceLastLine(text){ 
         this.lines[this.lines.length -1 ] = text; 
@@ -32,8 +34,16 @@ class TextObject{
     getLines(){
         return this.lines; 
     }
+    getMaxLineWidthIdx(){
+        const lengths = this.lines.map(str => str.length); 
+        const maxLength = Math.max(...lengths);
+        return lengths.indexOf(maxLength); 
+    }
+    getMaxLine(){
+        return this.lines[ this.getMaxLineWidthIdx() ]; 
+    }
     inBbox(ctx, x, y){
-        const text = this.lines[this.maxWidth.idx]; 
+        const text = this.getMaxLine();  
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const h = lineHeight * this.lines.length;
         const pad = 15;  
@@ -44,36 +54,27 @@ class TextObject{
         ctx.fillText(text , this.x, this.y + height*lineNum); 
     }
     drawLines(ctx){
-        this.maxWidth = {length: 0, idx: 0}; 
         this.lines.forEach((line, idx) =>{
             this.drawLine(ctx, idx, line);
-            if (line.length > this.maxWidth.length){
-                this.maxWidth.length = line.length; 
-                this.maxWidth.idx = idx; 
-            }
         }); 
     }
     clearBoxRect(ctx){ 
-        const text = this.lines[this.maxWidth.idx]; 
+        const text = this.getMaxLine(); 
         const [w, lineHeight] = getFontDimensions(ctx, text);
         // clear rect needs a bit more padding than stroke rect so that's what these magic 
         // numbers are about, I found them through experimentation but I imagine its because 
         // of the clear rect doesn't acount for line width of the actual box 
         const pad = 15 + ctx.lineWidth; 
-        ctx.clearRect(this.x - ctx.lineWidth , this.y - pad, w + pad + 2 , lineHeight* (this.lines.length) + 2);   
+        ctx.clearRect(this.x - ctx.lineWidth , this.y - pad , w + pad + 2 , lineHeight* (this.lines.length) + 2);   
     }
     drawBox(ctx){
-        const text = this.lines[this.maxWidth.idx]; 
+        const text = this.getMaxLine(); 
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const pad = 15; 
-        ctx.strokeRect(this.x, this.y - pad, w + pad , lineHeight* (this.lines.length) ); 
+        ctx.strokeRect(this.x, this.y - pad, w + pad , lineHeight* (this.lines.length)); 
     }
-    drawTextAndLines(ctx, newLines){
-        try{
-            this.clearBoxRect(ctx);
-        }catch(e){
-        }
-        this.lines = newLines;  
+    drawTextAndLines(ctx){
+        this.clearBoxRect(ctx);
         this.drawLines(ctx);
         this.drawBox(ctx);  
     }
@@ -93,7 +94,6 @@ class TextObject{
         return this.linkedTo; 
     }
 }
-
 
 const drawLine = (ctx, from, to) =>{ 
     const [from_x, from_y] = from; 
@@ -118,8 +118,6 @@ window.onload = () =>{
 
     // global variables
     const SPECIAL_CHAR = '~'; // special character we will split lines by
-    const CURSOR_CHAR = "";
-    let cursor; 
     let clickX, clickY;
     let textObjects = [];
     let selectedTextObjects = [];
@@ -148,22 +146,19 @@ window.onload = () =>{
     });
 
     canvas.addEventListener("click", (event)=>{ 
+        [clickX, clickY] = getCursorPosition(canvas, event);
+        clearInput(userInput);
 
-        const [x,y] = getCursorPosition(canvas, event);
-        [clickX, clickY] = [x, y]; 
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));  
 
-        if (userInput.value.length > 0 ){ 
-            clearInput(userInput);
-        }
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
-            const newTextBox = new TextObject(x, y); 
+            const newTextBox = new TextObject(clickX, clickY);  
             textObjects.push(newTextBox);
-            newTextBox.drawTextAndLines(ctx, newTextBox.getLines() ); 
+            newTextBox.drawTextAndLines(ctx);  
             return userInput.focus(); 
         }
         // user clicked on an already existing box 
-        existingTextObject.toggleSelected();
+        existingTextObject.toggleSelected(); 
 
         if (existingTextObject.isSelected() ){
             selectedTextObjects.push(existingTextObject); 
@@ -172,11 +167,10 @@ window.onload = () =>{
             selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
             ctx.strokeStyle = "#000000"; 
         }
-        existingTextObject.drawTextAndLines(ctx, existingTextObject.getLines() );  
+        existingTextObject.drawTextAndLines(ctx);  
         ctx.strokeStyle = "#000000";   // reset global ctx strokeStyle
         // fill input with current lines in case they wish to add or delete the text within box 
         userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
-
         userInput.focus();    
     });
 
@@ -188,8 +182,10 @@ window.onload = () =>{
         if (existingTextObject.isSelected() ){
             ctx.strokeStyle = "red"; 
         }
-        const newLines = userInput.value.split(SPECIAL_CHAR);
-        existingTextObject.drawTextAndLines(ctx, newLines);
+        existingTextObject.clearBoxRect(ctx); 
+        const newLines = userInput.value.split(SPECIAL_CHAR); 
+        existingTextObject.replaceLines(newLines); 
+        existingTextObject.drawTextAndLines(ctx); 
         ctx.strokeStyle = "#000000"; 
     });
 
@@ -197,7 +193,7 @@ window.onload = () =>{
         // in case user pressed select all and then delete 
         selectAll.textContent = "Select All";
         clickX = null; 
-        clickY = null; 
+        clickY = null;
 
         // if there are no linked textboxes within the selected textboxes 
         if ( !selectedTextObjects.some( textbox => textbox.linkedTo) ){ 
@@ -215,15 +211,8 @@ window.onload = () =>{
                 selectedTextBox.getLinked().forEach( line =>{
                     // remove reference to these lines 
                     lineObjects = lineObjects.filter( lineObj => lineObj !== line);
-                    try{
-                        const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== selectedTextBox);  
-                        otherTextBox.removeLinked(line);
-                        // just to be extra safe....
-                        // delete linesToBoxes[line]; 
-                    }catch(e){
-                        console.log("error = ", e); 
-                        console.log("Error most likely keynotfound error...linesToBoxes[line] = ", linesToBoxes[line]); 
-                    }
+                    const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== selectedTextBox);  
+                    otherTextBox.removeLinked(line);
                     
                 }); 
             });
@@ -231,10 +220,10 @@ window.onload = () =>{
             textObjects = textObjects.filter( textObj => !selectedTextObjects.includes(textObj));
             // re-draw remaining lines and textboxes onto canvas
             lineObjects.forEach( lineObj => drawLine(ctx, [lineObj.fromX, lineObj.fromY], [lineObj.toX, lineObj.toY])); 
-            textObjects.forEach( textObj => textObj.drawTextAndLines(ctx, textObj.getLines() ));   
+            textObjects.forEach( textObj => textObj.drawTextAndLines(ctx));   
         } 
         selectedTextObjects = []; 
-        clearInput(userInput); 
+        clearInput(userInput);
     });
 
     link.addEventListener("click", ()=>{
@@ -249,7 +238,7 @@ window.onload = () =>{
         const to = [textTwo.x, textTwo.y];  
         drawLine(ctx, from, to);
         [textOne, textTwo].forEach( textBox =>{
-            textBox.drawTextAndLines(ctx, textBox.getLines() ); 
+            textBox.drawTextAndLines(ctx); 
             textBox.toggleSelected();  
             textBox.addLinked(lineObj);
         });  
