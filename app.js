@@ -34,6 +34,9 @@ class TextObject{
     getLines(){
         return this.lines; 
     }
+    appendToLines(newLine){
+        this.lines.push(newLine); 
+    }
     getMaxLineWidthIdx(){
         const lengths = this.lines.map(str => str.length); 
         const maxLength = Math.max(...lengths);
@@ -141,7 +144,8 @@ window.onload = () =>{
             userInput.value += SPECIAL_CHAR;
             const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY); 
             const newLines = userInput.value.split(SPECIAL_CHAR);
-            existingTextObject.drawTextAndLines(ctx, newLines); 
+            existingTextObject.replaceLines(newLines); 
+            existingTextObject.drawTextAndLines(ctx); 
         } 
     });
 
