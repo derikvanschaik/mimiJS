@@ -112,17 +112,24 @@ const drawLine = (ctx, from, to) =>{
     ctx.stroke();
 }
 
-// returns which textbox is ontop of the other if any of them are onTop of the other, if not returns null; 
-const onOther = (ctx, cur, other) =>{
+
+// returns true if cur and other are slightly overlapping 
+const areOverLapping = (ctx, cur, other) =>{
     const [curW, curH] = cur.getBoxDimensions(ctx); 
-    const [otherW, otherH] = other.getBoxDimensions(ctx); 
-    if (other.x >= cur.x && other.x + otherW <= cur.x + curW && other.y >= cur.y && other.y + otherH <= cur.y + curH){
-        return other; 
-    }
-    if (cur.x >= other.x && cur.x + curW <= other.x + otherW && cur.y >= other.y && cur.y + curH <= other.y + otherH){
-        return cur; 
-    }
-    return null; 
+    const [otherW, otherH] = other.getBoxDimensions(ctx);
+    let overlap = false;
+    // cur topLeft, topRight, bottLeft, bottRight 
+    curPoints = [ [cur.x, cur.y], [cur.x + curW, cur.y], [cur.x, cur.y+ curH], [cur.x + curW, cur.y + curH]];
+    curPoints.forEach( (point) =>{
+        const [x,y] = point; 
+        overlap = overlap || other.inBbox(ctx, x, y); 
+    });
+    otherPoints = [ [other.x, other.y], [other.x + otherW, other.y], [other.x, other.y + otherH], [other.x + otherW, other.y + otherH] ]; 
+    otherPoints.forEach( (point) =>{
+        const [x,y] = point; 
+        overlap = overlap || cur.inBbox(ctx, x, y);  
+    });
+    return overlap; 
 }
 
 window.onload = () =>{
@@ -170,7 +177,7 @@ window.onload = () =>{
         } 
     });
 
-    canvas.addEventListener("click", (event)=>{
+    canvas.addEventListener("click", (event)=>{ 
         
         draggedFig = null; 
 
@@ -214,11 +221,19 @@ window.onload = () =>{
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
-            const draggedOverFig = textObjects.find(t => t.inBbox(ctx, clickX, clickY)); 
+            const otherTextBoxes = textObjects.filter(t=> t !== draggedFig); 
+            const draggedOverFig = otherTextBoxes.find(t => areOverLapping(ctx, t, draggedFig)); 
+            console.log("DRAGGED OVER FIG = ", draggedOverFig); 
             if (draggedOverFig){
-                if (draggedFig !== draggedOverFig){
-                    draggedOverFig.drawTextAndLines(ctx); 
+                if (!draggedOverTextObjects.includes(draggedOverFig)){
+                    draggedOverTextObjects.push(draggedOverFig); 
                 }
+                draggedOverFig.drawTextAndLines(ctx); 
+            }
+            if (!draggedOverFig && draggedOverTextObjects.length > 0){
+                console.log("in not dragged over fig", draggedOverTextObjects); 
+                draggedOverTextObjects.forEach( tBox => tBox.drawTextAndLines(ctx));
+                // draggedOverTextObjects = []; // reinit 
             }
             draggedFig.clearBoxRect(ctx);
             const offsetX = clickX - lastClickX; 
