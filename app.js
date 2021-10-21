@@ -117,7 +117,9 @@ window.onload = () =>{
     ctx.font = "15pt Comic Sans MS";
 
     // global variables
-    const SPECIAL_CHAR = '~'; // special character we will split lines by 
+    const SPECIAL_CHAR = '~'; // special character we will split lines by
+    const CURSOR_CHAR = "";
+    let cursor; 
     let clickX, clickY;
     let textObjects = [];
     let selectedTextObjects = [];
@@ -126,9 +128,12 @@ window.onload = () =>{
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
-    helpfulTextObj.lines = ["To make a textbox, click anywhere and begin typing.",
-                            "To delete, click on the textbox and press 'delete' ", 
-                            "To add more text to me, click on textbox and begin typing"]; 
+    helpfulTextObj.lines = [
+        "To make a textbox, click anywhere and begin typing.",
+        "To delete, click on the textbox and press 'delete' ", 
+        "To add more text to me, click on textbox and begin typing"
+    ];
+     
     textObjects.push(helpfulTextObj); 
     helpfulTextObj.drawTextAndLines(ctx, helpfulTextObj.lines);
     
@@ -189,6 +194,11 @@ window.onload = () =>{
     });
 
     del.addEventListener("click", ()=>{
+        // in case user pressed select all and then delete 
+        selectAll.textContent = "Select All";
+        clickX = null; 
+        clickY = null; 
+
         // if there are no linked textboxes within the selected textboxes 
         if ( !selectedTextObjects.some( textbox => textbox.linkedTo) ){ 
             selectedTextObjects.forEach( (textObject) =>{
@@ -259,14 +269,22 @@ window.onload = () =>{
         clickY = null; 
     });
 
-    selectAll.addEventListener("click", ()=>{ 
-        selectedTextObjects = textObjects.map(t => t); // copy contents
-        ctx.strokeStyle = "red";  
-        selectedTextObjects.forEach(t =>{
-            t.selected = true; 
-            t.drawTextAndLines(ctx, t.getLines() ); 
+    selectAll.addEventListener("click", ()=>{
+        if (selectAll.textContent === "Select All"){
+            selectAll.textContent = "De-Select All"; 
+            selectedTextObjects = textObjects.map(t => t); // copy contents
+            ctx.strokeStyle = "red";  
+            selectedTextObjects.forEach(t =>{
+                t.selected = true;  
+                t.drawTextAndLines(ctx, t.getLines() ); 
+            });
+            return ctx.strokeStyle = "#000000";
+        }
+        selectAll.textContent = "Select All"; 
+        textObjects.forEach(t => {
+            t.selected = false; 
+            t.drawTextAndLines(ctx, t.getLines() );
         });
-        ctx.strokeStyle = "#000000"; 
-    }); 
-
+        selectedTextObjects = [];  
+    });
 }
