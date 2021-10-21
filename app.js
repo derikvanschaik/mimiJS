@@ -132,6 +132,20 @@ const areOverLapping = (ctx, cur, other) =>{
     return overlap; 
 }
 
+const isInPath = (ctx, line, curBox) =>{
+    const lineStart = { x: line.fromX, y: line.fromY}; 
+    const lineEnd = {x: line.toX, y: line.toY}; 
+    let curPoint = {x: lineStart.x, y: lineStart.y };  
+    while(curPoint.x !== lineEnd.x && curPoint.y !== lineEnd.y){
+        if (curBox.inBbox(ctx, curPoint.x, curPoint.y )){
+            return true; 
+        }
+        curPoint.x++; 
+        curPoint.y++; 
+    }
+    return false; 
+}
+
 window.onload = () =>{
     const userInput = document.querySelector("input"); 
     const canvas = document.getElementById("mimi-canvas");
@@ -176,11 +190,46 @@ window.onload = () =>{
             existingTextObject.drawTextAndLines(ctx); 
         } 
     });
+    // this fires before a click, this is where we do dragging 'cleanup' and reinitializing. 
+    canvas.addEventListener("mouseup", () =>{
+        if (draggedFig){
+            // if there are lines that we need to redraw
+            // if (draggedFig.getLinked().length > 0){
+
+            //     draggedFig.getLinked().forEach( line =>{
+            //         // get box from other end of line 
+            //         const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== draggedFig);
+            //         // update line properties 
+            //         if (otherTextBox.x === line.fromX && otherTextBox.y === line.fromY){
+            //             line.toX = draggedFig.x; 
+            //             line.toY = draggedFig.y; 
+            //         }else{
+            //             line.fromX = draggedFig.x; 
+            //             line.fromY = draggedFig.y; 
+            //         }
+            //         // add lines back to lineObjects array 
+            //         lineObjects.push(line); 
+            //     });
+            //     // redraw figures onto canvas 
+            //     ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            //     lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+            //     textObjects.forEach( textbox => {
+            //         if (textbox.isSelected()){
+            //             ctx.strokeStyle = "red"; 
+            //         }
+            //         textbox.drawTextAndLines(ctx); 
+            //         ctx.strokeStyle = "#000000"; 
+            //     }); 
+            // }
+
+            draggedFig = null; 
+            draggedOverTextObjects.forEach(fig => fig.drawTextAndLines(ctx)); 
+            draggedOverTextObjects = []; // reinit 
+        }
+    }); 
 
     canvas.addEventListener("click", (event)=>{ 
         
-        draggedFig = null; 
-
         [clickX, clickY] = getCursorPosition(canvas, event);
         clearInput(userInput);
 
@@ -213,6 +262,12 @@ window.onload = () =>{
         [clickX, clickY] = getCursorPosition(canvas, event);
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
         draggedFig = existingTextObject;
+        // if (existingTextObject.getLinked().length > 0){
+        //     lineObjects = lineObjects.filter( lineObj => !existingTextObject.getLinked().includes(lineObj)); // remove reference to these lines 
+        //     ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        //     lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+        //     textObjects.forEach( text => text.drawTextAndLines(ctx));  
+        // }
          
     });
 
@@ -221,9 +276,10 @@ window.onload = () =>{
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
-            const otherTextBoxes = textObjects.filter(t=> t !== draggedFig); 
+            const otherTextBoxes = textObjects.filter(t=> t !== draggedFig);
+            // textbox object -- should rename for clarity 
             const draggedOverFig = otherTextBoxes.find(t => areOverLapping(ctx, t, draggedFig)); 
-            console.log("DRAGGED OVER FIG = ", draggedOverFig); 
+
             if (draggedOverFig){
                 if (!draggedOverTextObjects.includes(draggedOverFig)){
                     draggedOverTextObjects.push(draggedOverFig); 
@@ -231,10 +287,10 @@ window.onload = () =>{
                 draggedOverFig.drawTextAndLines(ctx); 
             }
             if (!draggedOverFig && draggedOverTextObjects.length > 0){
-                console.log("in not dragged over fig", draggedOverTextObjects); 
+
                 draggedOverTextObjects.forEach( tBox => tBox.drawTextAndLines(ctx));
-                // draggedOverTextObjects = []; // reinit 
-            }
+            } 
+
             draggedFig.clearBoxRect(ctx);
             const offsetX = clickX - lastClickX; 
             const offsetY = clickY - lastClickY;  
@@ -279,10 +335,15 @@ window.onload = () =>{
             // get to lines that are to be deleted
             selectedTextObjects.forEach( selectedTextBox =>{
                 selectedTextBox.getLinked().forEach( line =>{
-                    // remove reference to these lines 
+                    // remove reference to these lines
+                try{
                     lineObjects = lineObjects.filter( lineObj => lineObj !== line);
                     const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== selectedTextBox);  
                     otherTextBox.removeLinked(line);
+                }catch(e){
+                    console.log("Caught an error here = ", e); 
+                }
+                        
                     
                 }); 
             });
