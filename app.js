@@ -45,10 +45,15 @@ class TextObject{
     getMaxLine(){
         return this.lines[ this.getMaxLineWidthIdx() ]; 
     }
-    inBbox(ctx, x, y){
+    // returns width and height of box 
+    getBoxDimensions(ctx){
         const text = this.getMaxLine();  
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const h = lineHeight * this.lines.length;
+        return [w, h]; 
+    }
+    inBbox(ctx, x, y){
+        const [w, h] = this.getBoxDimensions(ctx);  
         const pad = 15;  
         return x >= this.x && x <= this.x + w + pad && y >= this.y - pad && y <= this.y + h -pad;       
     }
@@ -107,6 +112,19 @@ const drawLine = (ctx, from, to) =>{
     ctx.stroke();
 }
 
+// returns which textbox is ontop of the other if any of them are onTop of the other, if not returns null; 
+const onOther = (ctx, cur, other) =>{
+    const [curW, curH] = cur.getBoxDimensions(ctx); 
+    const [otherW, otherH] = other.getBoxDimensions(ctx); 
+    if (other.x >= cur.x && other.x + otherW <= cur.x + curW && other.y >= cur.y && other.y + otherH <= cur.y + curH){
+        return other; 
+    }
+    if (cur.x >= other.x && cur.x + curW <= other.x + otherW && cur.y >= other.y && cur.y + curH <= other.y + otherH){
+        return cur; 
+    }
+    return null; 
+}
+
 window.onload = () =>{
     const userInput = document.querySelector("input"); 
     const canvas = document.getElementById("mimi-canvas");
@@ -127,8 +145,8 @@ window.onload = () =>{
     let selectedTextObjects = [];
     let lineObjects = [];
     let linesToBoxes = {};
-    let dragMode = false;
-    let draggedFig; 
+    let draggedFig;
+    let draggedOverTextObjects = []; // tracks text objects we 'dragged over' and thus need to redraw once we are done dragging. 
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
@@ -152,8 +170,9 @@ window.onload = () =>{
         } 
     });
 
-    canvas.addEventListener("mouseup", (event)=>{
-        dragMode = false; 
+    canvas.addEventListener("click", (event)=>{
+        
+        draggedFig = null; 
 
         [clickX, clickY] = getCursorPosition(canvas, event);
         clearInput(userInput);
@@ -184,19 +203,24 @@ window.onload = () =>{
     });
 
     canvas.addEventListener("mousedown", (event) =>{
-        dragMode = true; 
         [clickX, clickY] = getCursorPosition(canvas, event);
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
-        draggedFig = existingTextObject; 
+        draggedFig = existingTextObject;
          
     });
 
     canvas.addEventListener("mousemove", (event) =>{ 
-        if (dragMode && draggedFig){
+        if (draggedFig){
 
-            draggedFig.clearBoxRect(ctx);
             const [lastClickX, lastClickY] = [clickX, clickY]; 
-            [clickX, clickY] = getCursorPosition(canvas, event);  
+            [clickX, clickY] = getCursorPosition(canvas, event);
+            const draggedOverFig = textObjects.find(t => t.inBbox(ctx, clickX, clickY)); 
+            if (draggedOverFig){
+                if (draggedFig !== draggedOverFig){
+                    draggedOverFig.drawTextAndLines(ctx); 
+                }
+            }
+            draggedFig.clearBoxRect(ctx);
             const offsetX = clickX - lastClickX; 
             const offsetY = clickY - lastClickY;  
             draggedFig.x += offsetX; 
