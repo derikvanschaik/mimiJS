@@ -18,7 +18,6 @@ class TextObject{
     constructor(x, y){ 
         this.x = x; 
         this.y = y;
-        this.currentLine = 0;
         this.lines = ['']; // default
         this.maxWidth = {length: 0, idx: 0};
         this.selected = false;
@@ -28,7 +27,10 @@ class TextObject{
         this.lines = newLines; 
     }
     replaceLastLine(text){ 
-        this.lines[this.currentLine] = text; 
+        this.lines[this.lines.length -1 ] = text; 
+    }
+    getLines(){
+        return this.lines; 
     }
     inBbox(ctx, x, y){
         const text = this.lines[this.maxWidth.idx]; 
@@ -81,7 +83,18 @@ class TextObject{
     toggleSelected(){
         this.selected = !this.selected; 
     }
+    removeLinked(line){
+        this.linkedTo = this.linkedTo.filter(curLine => curLine !== line); 
+    }
+    addLinked(line){
+        this.linkedTo.push(line); 
+    }
+    getLinked(){
+        return this.linkedTo; 
+    }
 }
+
+
 const drawLine = (ctx, from, to) =>{ 
     const [from_x, from_y] = from; 
     const [to_x, to_y] = to; 
@@ -106,7 +119,9 @@ window.onload = () =>{
     let clickX, clickY;
     let textObjects = [];
     let selectedTextObjects = [];
-    let lineObjects = []; 
+    let lineObjects = [];
+    let linesToBoxes = {}; 
+
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
     helpfulTextObj.lines = ["To make a textbox, click anywhere and begin typing.",
@@ -123,7 +138,8 @@ window.onload = () =>{
             const newLines = userInput.value.split(SPECIAL_CHAR);
             existingTextObject.drawTextAndLines(ctx, newLines); 
         } 
-    }); 
+    });
+
     canvas.addEventListener("click", (event)=>{ 
 
         const [x,y] = getCursorPosition(canvas, event);
@@ -134,22 +150,24 @@ window.onload = () =>{
         }
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
-            textObjects.push(new TextObject(x, y) );  
-        }else{
-            // user clicked on an already existing box 
-            existingTextObject.toggleSelected();
-            if (existingTextObject.isSelected() ){
-                selectedTextObjects.push(existingTextObject); 
-                ctx.strokeStyle = "red";
-            }else{
-                selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
-                ctx.strokeStyle = "#000000"; 
-            }
-            existingTextObject.drawTextAndLines(ctx, existingTextObject.lines);  
-            ctx.strokeStyle = "#000000";   // reset global ctx strokeStyle
-            // fill input with current lines in case they wish to add or delete the text within box 
-            userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
+            textObjects.push(new TextObject(x, y) );
+            return userInput.focus(); 
         }
+        // user clicked on an already existing box 
+        existingTextObject.toggleSelected();
+
+        if (existingTextObject.isSelected() ){
+            selectedTextObjects.push(existingTextObject); 
+            ctx.strokeStyle = "red";
+        }else{
+            selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
+            ctx.strokeStyle = "#000000"; 
+        }
+        existingTextObject.drawTextAndLines(ctx, existingTextObject.getLines() );  
+        ctx.strokeStyle = "#000000";   // reset global ctx strokeStyle
+        // fill input with current lines in case they wish to add or delete the text within box 
+        userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
+
         userInput.focus();    
     });
 
@@ -170,7 +188,6 @@ window.onload = () =>{
         // if there are no linked textboxes within the selected textboxes 
         if ( !selectedTextObjects.some( textbox => textbox.linkedTo) ){ 
             selectedTextObjects.forEach( (textObject) =>{
-                // clear from canvas 
                 textObject.clearBoxRect(ctx); 
             });
             selectedTextObjects.forEach( (textbox) =>{
@@ -183,42 +200,29 @@ window.onload = () =>{
         }else{
             // clear canvas 
             ctx.clearRect(0 ,0, canvas.width, canvas.height); 
-            // get to lines that are to be deleted 
-            let linesToDelete = []; 
-            selectedTextObjects.filter( t => t.linkedTo.length > 0 )
-                               .map( t=> t.linkedTo) 
-                               .forEach( arrayOfLineObjs =>{
-                                   arrayOfLineObjs.forEach( lineObj=>{
-                                       linesToDelete.push(lineObj); 
-                                   }); 
-                               }); 
-            // remove these lines from array  
-            lineObjects = lineObjects.filter( l => !linesToDelete.includes(l));
-            lineObjects.forEach( l =>{
-                // draw remaining lines 
-                drawLine(ctx, [l.fromX, l.fromY], [l.toX, l.toY]); 
-            }); 
-            // filter out selected textboxes from textbox objects array 
-            textObjects = textObjects.filter( t => !selectedTextObjects.includes(t));
-            // draw remaining textbox objects 
-            textObjects.forEach( t =>{
-                t.drawTextAndLines(ctx, t.lines); 
-            });
-            // update all remaining linkedTo properties
-            // will need to test this thoroughly  
-            textObjects.forEach( t =>{
-                let newLinkedTo = []; 
-                t.linkedTo.forEach(lineObj =>{
-                    const existingLineObj = lineObjects.find(l => l === lineObj);
-                    if (existingLineObj){
-                        newLinkedTo.push(existingLineObj); 
+            // get to lines that are to be deleted
+            selectedTextObjects.forEach( selectedTextBox =>{
+                selectedTextBox.getLinked().forEach( line =>{
+                    // remove reference to these lines 
+                    lineObjects = lineObjects.filter( lineObj => lineObj !== line);
+                    try{
+                        const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== selectedTextBox);  
+                        otherTextBox.removeLinked(line);
+                        // just to be extra safe....
+                        // delete linesToBoxes[line]; 
+                    }catch(e){
+                        console.log("error = ", e); 
+                        console.log("Error most likely keynotfound error...linesToBoxes[line] = ", linesToBoxes[line]); 
                     }
-                });
-                // reupdate 
-                t.linkedTo = newLinkedTo; 
-            }); 
-
-        }
+                    
+                }); 
+            });
+            // remove all textobjects in textobjects array that are also in selected textObjects 
+            textObjects = textObjects.filter( textObj => !selectedTextObjects.includes(textObj));
+            // re-draw remaining lines and textboxes onto canvas
+            lineObjects.forEach( lineObj => drawLine(ctx, [lineObj.fromX, lineObj.fromY], [lineObj.toX, lineObj.toY])); 
+            textObjects.forEach( textObj => textObj.drawTextAndLines(ctx, textObj.getLines() ));   
+        } 
         selectedTextObjects = []; 
         clearInput(userInput); 
     });
@@ -234,16 +238,13 @@ window.onload = () =>{
         const from = [textOne.x, textOne.y]; 
         const to = [textTwo.x, textTwo.y];  
         drawLine(ctx, from, to);
-        // delete and redraw textboxes 
-        textOne.drawTextAndLines(ctx, textOne.lines); 
-        textTwo.drawTextAndLines(ctx, textTwo.lines);
-        // deselect 
-        textOne.toggleSelected(); 
-        textTwo.toggleSelected();
-        // remove selected references
+        [textOne, textTwo].forEach( textBox =>{
+            textBox.drawTextAndLines(ctx, textBox.getLines() ); 
+            textBox.toggleSelected();  
+            textBox.addLinked(lineObj);
+        });  
         selectedTextObjects = [];
-        textOne.linkedTo.push(lineObj); 
-        textTwo.linkedTo.push(lineObj);  
+        linesToBoxes[lineObj] = [textOne, textTwo]; // add reference to line 
     }); 
 
 }
