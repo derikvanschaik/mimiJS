@@ -20,7 +20,7 @@ class TextObject{
         this.y = y;
         this.lines = ['']; // default
         this.selected = false;
-        this.linkedTo = [];   
+        this.linkedTo = [];
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -126,7 +126,9 @@ window.onload = () =>{
     let textObjects = [];
     let selectedTextObjects = [];
     let lineObjects = [];
-    let linesToBoxes = {}; 
+    let linesToBoxes = {};
+    let dragMode = false;
+    let draggedFig; 
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
@@ -150,7 +152,9 @@ window.onload = () =>{
         } 
     });
 
-    canvas.addEventListener("click", (event)=>{ 
+    canvas.addEventListener("mouseup", (event)=>{
+        dragMode = false; 
+
         [clickX, clickY] = getCursorPosition(canvas, event);
         clearInput(userInput);
 
@@ -178,6 +182,28 @@ window.onload = () =>{
         userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
         userInput.focus();    
     });
+
+    canvas.addEventListener("mousedown", (event) =>{
+        dragMode = true; 
+        [clickX, clickY] = getCursorPosition(canvas, event);
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        draggedFig = existingTextObject; 
+         
+    });
+
+    canvas.addEventListener("mousemove", (event) =>{ 
+        if (dragMode && draggedFig){
+
+            draggedFig.clearBoxRect(ctx);
+            const [lastClickX, lastClickY] = [clickX, clickY]; 
+            [clickX, clickY] = getCursorPosition(canvas, event);  
+            const offsetX = clickX - lastClickX; 
+            const offsetY = clickY - lastClickY;  
+            draggedFig.x += offsetX; 
+            draggedFig.y += offsetY; 
+            draggedFig.drawTextAndLines(ctx); 
+        }
+    }); 
 
     userInput.addEventListener("input", ()=>{
 
@@ -291,7 +317,9 @@ window.onload = () =>{
         const width = pdf.internal.pageSize.width;
         const height = width / ratio; 
 
-        pdf.addImage(imgData, 'PNG',0,0, width, height); 
+        pdf.addImage(imgData, 'PNG',0,10, width, height);
+        pdf.setLineWidth(2);
+        pdf.rect(0, 10, width, height); 
         pdf.save("download.pdf"); 
     });
 }
