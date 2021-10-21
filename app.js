@@ -114,7 +114,8 @@ window.onload = () =>{
     const del = document.querySelector("#delete");
     const link = document.querySelector("#link");
     const clear = document.querySelector("#clear");
-    const selectAll = document.querySelector("#select-all"); 
+    const selectAll = document.querySelector("#select-all");
+    const download = document.querySelector("#download"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -279,5 +280,18 @@ window.onload = () =>{
             t.drawTextAndLines(ctx, t.getLines() );
         });
         selectedTextObjects = [];  
+    });
+
+    download.addEventListener("click", ()=> {
+
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const pdf = new jsPDF("p", "mm", "a4");
+
+        const ratio = canvas.width/canvas.height; 
+        const width = pdf.internal.pageSize.width;
+        const height = width / ratio; 
+
+        pdf.addImage(imgData, 'PNG',0,0, width, height); 
+        pdf.save("download.pdf"); 
     });
 }
