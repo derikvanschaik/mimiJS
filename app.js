@@ -109,7 +109,9 @@ window.onload = () =>{
     const canvas = document.getElementById("mimi-canvas");
     const ctx = canvas.getContext("2d");
     const del = document.querySelector("#delete");
-    const link = document.querySelector("#link"); 
+    const link = document.querySelector("#link");
+    const clear = document.querySelector("#clear");
+    const selectAll = document.querySelector("#select-all"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -150,7 +152,9 @@ window.onload = () =>{
         }
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, x, y));  
         if (!existingTextObject){
-            textObjects.push(new TextObject(x, y) );
+            const newTextBox = new TextObject(x, y); 
+            textObjects.push(newTextBox);
+            newTextBox.drawTextAndLines(ctx, newTextBox.getLines() ); 
             return userInput.focus(); 
         }
         // user clicked on an already existing box 
@@ -158,7 +162,7 @@ window.onload = () =>{
 
         if (existingTextObject.isSelected() ){
             selectedTextObjects.push(existingTextObject); 
-            ctx.strokeStyle = "red";
+            ctx.strokeStyle = "red"; 
         }else{
             selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
             ctx.strokeStyle = "#000000"; 
@@ -191,12 +195,8 @@ window.onload = () =>{
                 textObject.clearBoxRect(ctx); 
             });
             selectedTextObjects.forEach( (textbox) =>{
-                // filter out all selected text object from textobjects array  
                 textObjects = textObjects.filter( textobj => textobj !== textbox); 
             }); 
-            // else clear the entire canvas, only draw the lines which are not connected 
-            // to boxes that are selected. Then need to draw remaining lines onto canvas
-            // and the remaining boxes 
         }else{
             // clear canvas 
             ctx.clearRect(0 ,0, canvas.width, canvas.height); 
@@ -245,6 +245,28 @@ window.onload = () =>{
         });  
         selectedTextObjects = [];
         linesToBoxes[lineObj] = [textOne, textTwo]; // add reference to line 
+    });
+
+    clear.addEventListener("click", ()=>{ 
+        // clear canvas 
+        ctx.clearRect(0, 0, canvas.width, canvas.height); 
+        // reset references 
+        selectedTextObjects = [];
+        textObjects = []; 
+        linesToBoxes = {}; 
+        lineObjects = []; 
+        clickX = null; 
+        clickY = null; 
+    });
+
+    selectAll.addEventListener("click", ()=>{ 
+        selectedTextObjects = textObjects.map(t => t); // copy contents
+        ctx.strokeStyle = "red";  
+        selectedTextObjects.forEach(t =>{
+            t.selected = true; 
+            t.drawTextAndLines(ctx, t.getLines() ); 
+        });
+        ctx.strokeStyle = "#000000"; 
     }); 
 
 }
