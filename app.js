@@ -86,7 +86,7 @@ class TextObject{
         ctx.strokeStyle = "#000000"; 
          
     }
-    drawTextAndLines(ctx){
+    drawTextBox(ctx){ 
         this.clearBoxRect(ctx);
         this.drawLines(ctx);
         this.drawBox(ctx);  
@@ -123,18 +123,38 @@ const areOverLapping = (ctx, cur, other) =>{
     const [curW, curH] = cur.getBoxDimensions(ctx); 
     const [otherW, otherH] = other.getBoxDimensions(ctx);
     let overlap = false;
+    const pad = 15; // we must account for the pad we add during the drawBox methods in TextObject instances 
     // cur topLeft, topRight, bottLeft, bottRight 
-    curPoints = [ [cur.x, cur.y], [cur.x + curW, cur.y], [cur.x, cur.y+ curH], [cur.x + curW, cur.y + curH]];
-    curPoints.forEach( (point) =>{
+    const curPoints = [ [cur.x, cur.y], [cur.x + curW + pad, cur.y], [cur.x, cur.y+ curH], [cur.x + curW + pad, cur.y + curH]]
+    .map(array=> [array[0] , array[1] -pad]); 
+
+    curPoints.forEach( (point) =>{ 
         const [x,y] = point; 
         overlap = overlap || other.inBbox(ctx, x, y); 
     });
-    otherPoints = [ [other.x, other.y], [other.x + otherW, other.y], [other.x, other.y + otherH], [other.x + otherW, other.y + otherH] ]; 
+    const otherPoints = [ [other.x, other.y], [other.x + otherW + pad, other.y], [other.x, other.y + otherH], [other.x + otherW + pad, other.y + otherH]] 
+    .map(array=> [array[0] , array[1] -pad]);  
+
     otherPoints.forEach( (point) =>{
         const [x,y] = point; 
         overlap = overlap || cur.inBbox(ctx, x, y);  
     });
     return overlap; 
+}
+
+const getOverLappedTextBox = (ctx, textObjects, draggedFig) =>{
+    const otherTextBoxes = textObjects.filter(t=> t !== draggedFig); 
+    return otherTextBoxes.find(t => areOverLapping(ctx, t, draggedFig)); 
+}
+// relocates textobject to new position by deleting textObject at last location and redrawing at updated location.
+// Updates textObject's location properties. 
+const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{ 
+    textBox.clearBoxRect(ctx);
+    const offsetX = x - lastX; 
+    const offsetY = y - lastY;   
+    textBox.x += offsetX; 
+    textBox.y += offsetY; 
+    textBox.drawTextBox(ctx); 
 }
 
 window.onload = () =>{
@@ -150,7 +170,6 @@ window.onload = () =>{
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
 
-    // global variables
     const SPECIAL_CHAR = '~'; // special character we will split lines by
     let clickX, clickY;
     let textObjects = [];
@@ -158,7 +177,7 @@ window.onload = () =>{
     let lineObjects = [];
     let linesToBoxes = {};
     let draggedFig;
-    let draggedOverTextObjects = []; // tracks text objects we 'dragged over' and thus need to redraw once we are done dragging. 
+    let draggedOverTextBox; 
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
@@ -169,24 +188,24 @@ window.onload = () =>{
     ];
      
     textObjects.push(helpfulTextObj); 
-    helpfulTextObj.drawTextAndLines(ctx, helpfulTextObj.lines);
+    helpfulTextObj.drawTextBox(ctx, helpfulTextObj.lines);
     
     // event handlers
-    window.addEventListener("keydown" , (event) =>{
+    window.addEventListener("keydown" , (event) =>{ 
         if (event.key === "Enter"){
             userInput.value += SPECIAL_CHAR;
             const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY); 
             const newLines = userInput.value.split(SPECIAL_CHAR);
             existingTextObject.replaceLines(newLines); 
-            existingTextObject.drawTextAndLines(ctx); 
+            existingTextObject.drawTextBox(ctx); 
         } 
     });
     // this fires before a click, this is where we do dragging 'cleanup' and reinitializing. 
     canvas.addEventListener("mouseup", () =>{
+        // reinitialize variables set in 'drag mode'. 
         if (draggedFig){
-            draggedFig = null; 
-            draggedOverTextObjects.forEach(fig => fig.drawTextAndLines(ctx)); 
-            draggedOverTextObjects = []; // reinit 
+            draggedFig = null;
+            draggedOverTextBox = null; 
         }
     }); 
 
@@ -200,7 +219,7 @@ window.onload = () =>{
         if (!existingTextObject){
             const newTextBox = new TextObject(clickX, clickY);  
             textObjects.push(newTextBox);
-            newTextBox.drawTextAndLines(ctx);  
+            newTextBox.drawTextBox(ctx);  
             return userInput.focus(); 
         }
         // user clicked on an already existing box 
@@ -211,7 +230,7 @@ window.onload = () =>{
         }else{
             selectedTextObjects = selectedTextObjects.filter(textbox=> textbox !== existingTextObject); 
         }
-        existingTextObject.drawTextAndLines(ctx);  
+        existingTextObject.drawTextBox(ctx);  
         // fill input with current lines in case they wish to add or delete the text within box 
         userInput.value = existingTextObject.lines.join(SPECIAL_CHAR); 
         userInput.focus();    
@@ -228,27 +247,24 @@ window.onload = () =>{
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
-            const otherTextBoxes = textObjects.filter(t=> t !== draggedFig);
-            // textbox object -- should rename for clarity 
-            const draggedOverFig = otherTextBoxes.find(t => areOverLapping(ctx, t, draggedFig)); 
+ 
 
-            if (draggedOverFig){
-                if (!draggedOverTextObjects.includes(draggedOverFig)){
-                    draggedOverTextObjects.push(draggedOverFig); 
-                }
-                draggedOverFig.drawTextAndLines(ctx); 
+            const overlappedTextBox = getOverLappedTextBox(ctx, textObjects, draggedFig);
+
+            if(!draggedOverTextBox){
+                draggedOverTextBox = overlappedTextBox; 
             }
-            if (!draggedOverFig && draggedOverTextObjects.length > 0){
-
-                draggedOverTextObjects.forEach( tBox => tBox.drawTextAndLines(ctx));
-            } 
-
-            draggedFig.clearBoxRect(ctx);
-            const offsetX = clickX - lastClickX; 
-            const offsetY = clickY - lastClickY;  
-            draggedFig.x += offsetX; 
-            draggedFig.y += offsetY; 
-            draggedFig.drawTextAndLines(ctx); 
+            if (draggedOverTextBox){
+                draggedOverTextBox.drawTextBox(ctx); 
+            }
+            relocateTextObject(ctx, draggedFig, clickX, clickY, lastClickX, lastClickY); 
+            
+            if (draggedOverTextBox !== overlappedTextBox){
+                // redraw dragged over textbox 
+                draggedOverTextBox.drawTextBox(ctx); 
+                draggedOverTextBox = overlappedTextBox; 
+            }
+             
         }
     }); 
 
@@ -260,7 +276,7 @@ window.onload = () =>{
         existingTextObject.clearBoxRect(ctx); 
         const newLines = userInput.value.split(SPECIAL_CHAR); 
         existingTextObject.replaceLines(newLines); 
-        existingTextObject.drawTextAndLines(ctx); 
+        existingTextObject.drawTextBox(ctx); 
         
     });
 
@@ -300,7 +316,7 @@ window.onload = () =>{
             textObjects = textObjects.filter( textObj => !selectedTextObjects.includes(textObj));
             // re-draw remaining lines and textboxes onto canvas
             lineObjects.forEach( lineObj => drawLine(ctx, [lineObj.fromX, lineObj.fromY], [lineObj.toX, lineObj.toY])); 
-            textObjects.forEach( textObj => textObj.drawTextAndLines(ctx));   
+            textObjects.forEach( textObj => textObj.drawTextBox(ctx));   
         } 
         selectedTextObjects = []; 
         clearInput(userInput);
@@ -319,7 +335,7 @@ window.onload = () =>{
         drawLine(ctx, from, to);
         [textOne, textTwo].forEach( textBox =>{
             textBox.toggleSelected(); 
-            textBox.drawTextAndLines(ctx);   
+            textBox.drawTextBox(ctx);   
             textBox.addLinked(lineObj);
         });  
         selectedTextObjects = [];
@@ -345,14 +361,14 @@ window.onload = () =>{
             ctx.strokeStyle = "red";  
             selectedTextObjects.forEach(t =>{
                 t.selected = true;  
-                t.drawTextAndLines(ctx, t.getLines() ); 
+                t.drawTextBox(ctx); 
             });
             return ctx.strokeStyle = "#000000";
         }
         selectAll.textContent = "Select All"; 
         textObjects.forEach(t => {
             t.selected = false; 
-            t.drawTextAndLines(ctx, t.getLines() );
+            t.drawTextBox(ctx);
         });
         selectedTextObjects = [];  
     });
