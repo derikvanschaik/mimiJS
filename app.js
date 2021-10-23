@@ -167,18 +167,26 @@ const createNewTab = (tabRoot) =>{
     // bind elements 
     tabDiv.appendChild(tabTitle); 
     tabRoot.appendChild(tabDiv);
+    return tabDiv; // return element so that we can attach an event listener 
+
+}
+// resizes tabs so that they all fit within the tab container 
+const resizeTabs = (tabRoot, tabDiv) =>{  
     // reformat tabs if they exceed available space  
     const totalPixelsAvailable = document.querySelector(".tab-section").clientWidth; 
     const numOfTabs = tabRoot.childElementCount;
-
     if (numOfTabs*tabDiv.clientWidth > totalPixelsAvailable){
         const tabs = Array.from(document.querySelectorAll(".tab"));
         tabs.forEach( tab =>{
             tab.style.width = `${totalPixelsAvailable/numOfTabs - 23}px`; 
         }); 
     }
-    return tabDiv; // return element so that we can attach an event listener 
-
+}
+// clears the canvas, draws the lines and textboxes onto canvas. 
+const drawCanvas = (ctx, canvas, lineObjects, textObjects) =>{ 
+    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+    lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
+    textObjects.forEach( t => t.drawTextBox(ctx));
 }
 // returns hashMap of all current data structures etc, 
 const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox) =>{
@@ -266,9 +274,7 @@ window.onload = () =>{
                     
                 });
                 // redraw canvas with our newly added lines
-                ctx.clearRect(0, 0, canvas.width, canvas.height); 
-                lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
-                textObjects.forEach( t => t.drawTextBox(ctx)); 
+                drawCanvas(ctx, canvas, lineObjects, textObjects); 
             }
             draggedFig = null;
             draggedOverTextBox = null; 
@@ -319,14 +325,12 @@ window.onload = () =>{
                 const firstLine = draggedFig.getLinked()[0];
                 // need to delete the lines from canvas 
                 if (lineObjects.includes(firstLine)){
-                    ctx.clearRect(0, 0, canvas.width, canvas.height); 
                     // remove reference to the lines 
                     draggedFig.getLinked().forEach( line =>{
                         lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
                     }); 
                     // redraw canvas 
-                    lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
-                    textObjects.forEach( t => t.drawTextBox(ctx)); 
+                    drawCanvas(ctx, canvas, lineObjects, textObjects); 
                 }
             }
 
@@ -376,29 +380,24 @@ window.onload = () =>{
                 textObjects = textObjects.filter( textobj => textobj !== textbox); 
             }); 
         }else{
-            // clear canvas 
-            ctx.clearRect(0 ,0, canvas.width, canvas.height); 
             // get to lines that are to be deleted
             selectedTextObjects.forEach( selectedTextBox =>{
                 selectedTextBox.getLinked().forEach( line =>{
                     // remove reference to these lines
-                try{
-                    lineObjects = lineObjects.filter( lineObj => lineObj !== line);
-                    const otherTextBox = linesToBoxes.get(line).find(textBox => textBox !== selectedTextBox);  
-                    otherTextBox.removeLinked(line);
-                    linesToBoxes.delete(line); 
-                }catch(e){
-                    console.log("Caught an error here = ", e); 
-                }
-                        
-                    
+                    try{
+                        lineObjects = lineObjects.filter( lineObj => lineObj !== line);
+                        const otherTextBox = linesToBoxes.get(line).find(textBox => textBox !== selectedTextBox);  
+                        otherTextBox.removeLinked(line);
+                        linesToBoxes.delete(line); 
+                    }catch(e){
+                        console.log("Caught an error here = ", e); 
+                    }
                 }); 
             });
             // remove all textobjects in textobjects array that are also in selected textObjects 
             textObjects = textObjects.filter( textObj => !selectedTextObjects.includes(textObj));
-            // re-draw remaining lines and textboxes onto canvas
-            lineObjects.forEach( lineObj => drawLine(ctx, [lineObj.fromX, lineObj.fromY], [lineObj.toX, lineObj.toY])); 
-            textObjects.forEach( textObj => textObj.drawTextBox(ctx));   
+            // re-draw canvas
+            drawCanvas(ctx, canvas, lineObjects, textObjects); 
         } 
         selectedTextObjects = []; 
         clearInput(userInput);
@@ -436,7 +435,7 @@ window.onload = () =>{
         clickY = null; 
     });
 
-    download.addEventListener("click", ()=> {
+    download.addEventListener("click", ()=> { 
 
         const imgData = canvas.toDataURL("image/png", 1.0);
         const pdf = new jsPDF("p", "mm", "a4");
@@ -490,21 +489,18 @@ window.onload = () =>{
                 draggedOverTextBox = newState.get('draggedOverTextBox'); 
             }
             // with all our reinitilizaed variables, draw them onto canvas 
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            lineObjects.forEach(line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
-            textObjects.forEach( textbox => textbox.drawTextBox(ctx)); 
-
-
+            drawCanvas(ctx, canvas, lineObjects, textObjects);
             // console.log("Current Canvas State:", curCanvasState); 
         });
     }
-     // configure current tab -- to be dynamic 
+     // configure initial tab -- to be dynamic 
     createTabEventListener(document.getElementById("0")); 
     // create new tab and add an event listener to it 
-    newTab.addEventListener("click", () =>{ 
+    newTab.addEventListener("click", () =>{
+        // tabSection is the tabRoot element 
         const tab = createNewTab(tabSection);
+        resizeTabs(tabSection, tab);  
         createTabEventListener(tab); 
     });
-
-
+    
 }
