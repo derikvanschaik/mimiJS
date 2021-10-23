@@ -175,7 +175,7 @@ window.onload = () =>{
     let textObjects = [];
     let selectedTextObjects = [];
     let lineObjects = [];
-    let linesToBoxes = {};
+    const linesToBoxes = new Map(); 
     let draggedFig;
     let draggedOverTextBox; 
 
@@ -203,7 +203,14 @@ window.onload = () =>{
     // this fires before a click, this is where we do dragging 'cleanup' and reinitializing. 
     canvas.addEventListener("mouseup", () =>{
         // reinitialize variables set in 'drag mode'. 
-        if (draggedFig){
+        if (draggedFig){ 
+            // when the length is 0 this is evaluated as false 
+            if (draggedFig.getLinked().length){
+                
+                draggedFig.getLinked().forEach( line =>{
+                    console.log("this line is attached to",linesToBoxes.get(line).find(tbox => tbox !== draggedFig).getLines() ); 
+                });
+            }
             draggedFig = null;
             draggedOverTextBox = null; 
         }
@@ -239,15 +246,34 @@ window.onload = () =>{
     canvas.addEventListener("mousedown", (event) =>{
         [clickX, clickY] = getCursorPosition(canvas, event);
         const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
-        draggedFig = existingTextObject; 
+        // user is clicking to create new textbox not drag or select a currenty existing one. 
+        if (!existingTextObject){
+            return; 
+        }
+        draggedFig = existingTextObject;
     });
 
     canvas.addEventListener("mousemove", (event) =>{ 
-        if (draggedFig){
+        if (draggedFig){ 
+            // want to check if there are any lines on canvas of dragged fig 
+            // if (draggedFig.getLinked().length > 0 ){
+            //     const firstLine = draggedFig.getLinked()[0];
+            //     // need to delete the lines from canvas 
+            //     if (lineObjects.includes(firstLine)){
+            //         ctx.clearRect(0, 0, canvas.width, canvas.height); 
+            //         // remove reference to the lines 
+            //         draggedFig.getLinked().forEach( line =>{
+            //             lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
+            //         }); 
+            //         // redraw canvas 
+            //         lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+            //         textObjects.forEach( t => t.drawTextBox(ctx)); 
+            //     }
+            // }
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
- 
+            
 
             const overlappedTextBox = getOverLappedTextBox(ctx, textObjects, draggedFig);
 
@@ -258,7 +284,7 @@ window.onload = () =>{
                 draggedOverTextBox.drawTextBox(ctx); 
             }
             relocateTextObject(ctx, draggedFig, clickX, clickY, lastClickX, lastClickY); 
-            
+
             if (draggedOverTextBox !== overlappedTextBox){
                 // redraw dragged over textbox 
                 draggedOverTextBox.drawTextBox(ctx); 
@@ -336,10 +362,10 @@ window.onload = () =>{
         [textOne, textTwo].forEach( textBox =>{
             textBox.toggleSelected(); 
             textBox.drawTextBox(ctx);   
-            textBox.addLinked(lineObj);
+            textBox.addLinked(lineObj); 
         });  
         selectedTextObjects = [];
-        linesToBoxes[lineObj] = [textOne, textTwo]; // add reference to line 
+        linesToBoxes.set(lineObj, [textOne, textTwo] ); // add reference to line 
     });
 
     clear.addEventListener("click", ()=>{ 
@@ -363,7 +389,7 @@ window.onload = () =>{
                 t.selected = true;  
                 t.drawTextBox(ctx); 
             });
-            return ctx.strokeStyle = "#000000";
+            return ctx.strokeStyle = "#000000"; 
         }
         selectAll.textContent = "Select All"; 
         textObjects.forEach(t => {
