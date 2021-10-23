@@ -249,6 +249,7 @@ window.onload = () =>{
             if (draggedFig.getLinked().length){
                 
                 draggedFig.getLinked().forEach( line =>{
+                    console.log("canvas", curCanvasStateIdx, "lines to boxes = ", linesToBoxes); 
                     const otherBox = linesToBoxes.get(line).find(tbox => tbox !== draggedFig);
                     const otherBoxLine = otherBox.getLinked().find( linkedLine => linkedLine === line); 
                     // update line properties 
@@ -429,7 +430,7 @@ window.onload = () =>{
         // reset references 
         selectedTextObjects = [];
         textObjects = []; 
-        linesToBoxes = {}; 
+        linesToBoxes = new Map();  
         lineObjects = []; 
         clickX = null; 
         clickY = null; 
