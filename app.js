@@ -164,7 +164,6 @@ window.onload = () =>{
     const del = document.querySelector("#delete");
     const link = document.querySelector("#link");
     const clear = document.querySelector("#clear");
-    const selectAll = document.querySelector("#select-all");
     const download = document.querySelector("#download"); 
 
     // Canvas configurations 
@@ -397,26 +396,7 @@ window.onload = () =>{
         clickX = null; 
         clickY = null; 
     });
-
-    selectAll.addEventListener("click", ()=>{
-        if (selectAll.textContent === "Select All"){
-            selectAll.textContent = "De-Select All"; 
-            selectedTextObjects = textObjects.map(t => t); // copy contents
-            ctx.strokeStyle = "red";  
-            selectedTextObjects.forEach(t =>{
-                t.selected = true;  
-                t.drawTextBox(ctx); 
-            });
-            return ctx.strokeStyle = "#000000"; 
-        }
-        selectAll.textContent = "Select All"; 
-        textObjects.forEach(t => {
-            t.selected = false; 
-            t.drawTextBox(ctx);
-        });
-        selectedTextObjects = [];  
-    });
-
+    
     download.addEventListener("click", ()=> {
 
         const imgData = canvas.toDataURL("image/png", 1.0);
