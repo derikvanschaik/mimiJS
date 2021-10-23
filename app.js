@@ -217,8 +217,11 @@ window.onload = () =>{
                         l.toX = otherBox.x; 
                         l.toY = otherBox.y; 
                     });
-                    // add newly updated line ref to lineObjects list 
-                    lineObjects.push(line); 
+                    // add newly updated line ref to lineObjects list
+                    if (!lineObjects.includes(line)){
+                        lineObjects.push(line);  
+                    }
+                    
                 });
                 // redraw canvas with our newly added lines
                 ctx.clearRect(0, 0, canvas.width, canvas.height); 
@@ -343,8 +346,9 @@ window.onload = () =>{
                     // remove reference to these lines
                 try{
                     lineObjects = lineObjects.filter( lineObj => lineObj !== line);
-                    const [otherTextBox] = linesToBoxes[line].filter(textBox => textBox !== selectedTextBox);  
+                    const otherTextBox = linesToBoxes.get(line).find(textBox => textBox !== selectedTextBox);  
                     otherTextBox.removeLinked(line);
+                    linesToBoxes.delete(line); 
                 }catch(e){
                     console.log("Caught an error here = ", e); 
                 }
