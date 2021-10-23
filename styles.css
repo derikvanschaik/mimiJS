@@ -14,7 +14,7 @@ body{
     border: 2px solid black;
     background-color: white;
 }
-.nav-button{
+button{
     margin-top: 12px;
     margin-bottom: 12px;
     background-color: #4CAF50; /* Green */
@@ -26,8 +26,10 @@ body{
     display: inline-block;
     font-size: 16px;
     width: 150px;
-    border-radius: 1em;
     cursor: pointer; 
+}
+.nav-button{
+    border-radius: 1em;
 }
 #delete{
     background: lightcoral; 
@@ -56,7 +58,7 @@ body{
     color:black;
     padding-left: 10px;
     padding-right: 10px; 
-    font-size: 16px;
+    font-size: small;
     width: 109px;
     float: left;
     cursor: pointer;
@@ -96,7 +98,7 @@ body{
     border: 1px solid #888;
     width: 40%; /* Could be more or less, depending on screen size */
     height: 40%;
-    text-align: center;
+    text-align: center; 
   }
   
   /* The Close Button */
@@ -112,4 +114,8 @@ body{
     color: black;
     text-decoration: none;
     cursor: pointer;
+  }
+  #modal-component{
+    display: grid;
+    grid-template-columns: auto;
   }

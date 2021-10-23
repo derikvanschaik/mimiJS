@@ -506,11 +506,33 @@ window.onload = () =>{
     });
 
     renameTab.addEventListener("click", ()=>{
+        const curTab = document.getElementById(`${curCanvasStateIdx}`); 
+        // grab custom modal component and delete all its children 
         const modalComponent = document.querySelector("#modal-component"); 
-        modalComponent.replaceChildren(); 
-        const newParagraph = document.createElement("p"); 
-        newParagraph.textContent = "dynamically created"; 
-        modalComponent.appendChild(newParagraph); 
+        modalComponent.replaceChildren();
+        // create html elements 
+        const title = document.createElement("h3");
+        const input = document.createElement("input"); 
+        const change = document.createElement("button");
+        const discard = document.createElement("button");
+        // customize 
+        title.textContent = `Enter new Name for '${curTab.textContent}':`;
+        change.textContent = "Change"; 
+        discard.textContent = "Cancel";
+        // create event listeners for buttons
+        change.onclick = () => {
+            // change the text
+            curTab.firstChild.textContent = input.value; 
+            // close the modal 
+            modal.style.display = "none";  
+        }
+        discard.onclick = () => {
+            // close the modal 
+            modal.style.display = "none"; 
+        } 
+        
+        // bind elements 
+        [title, input, change, discard].forEach(el => modalComponent.appendChild(el)); 
         // open the modal 
         modal.style.display = "block";
     });
