@@ -157,14 +157,6 @@ const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{
     textBox.drawTextBox(ctx); 
 }
 
-const addClickListenerToTab = (tab)=>{ 
-    tab.addEventListener("click", ()=>{
-        const lastActiveTab = document.querySelector(".current");
-        lastActiveTab.classList.toggle("current"); 
-        tab.classList.toggle("current");   
-    });
-}
-
 const createNewTab = (tabRoot) =>{
     // create tab div 
     const tabDiv = document.createElement("div");
@@ -172,8 +164,6 @@ const createNewTab = (tabRoot) =>{
     tabDiv.id = `${tabRoot.childElementCount}`; // set id to current tab number 
     const tabTitle = document.createElement("h3");
     tabTitle.textContent = "Unititled";
-    // add click event listener 
-    addClickListenerToTab(tabDiv); 
     // bind elements 
     tabDiv.appendChild(tabTitle); 
     tabRoot.appendChild(tabDiv);
@@ -187,7 +177,21 @@ const createNewTab = (tabRoot) =>{
             tab.style.width = `${totalPixelsAvailable/numOfTabs - 23}px`; 
         }); 
     }
+    return tabDiv; // return element so that we can attach an event listener 
 
+}
+// returns hashMap of all current data structures etc, 
+const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox) =>{
+    const stateHash = new Map(); 
+    stateHash.set('clickX', clickX); 
+    stateHash.set('clickY', clickY); 
+    stateHash.set('textObjects', textObjects); 
+    stateHash.set('selectedTextObjects', selectedTextObjects); 
+    stateHash.set('lineObjects', lineObjects); 
+    stateHash.set('linesToBoxes', linesToBoxes); 
+    stateHash.set('draggedFig', draggedFig); 
+    stateHash.set('draggedOverTextBox', draggedOverTextBox); 
+    return stateHash; 
 }
 
 window.onload = () =>{
@@ -209,9 +213,11 @@ window.onload = () =>{
     let textObjects = [];
     let selectedTextObjects = [];
     let lineObjects = [];
-    const linesToBoxes = new Map(); 
+    let linesToBoxes = new Map(); 
     let draggedFig;
-    let draggedOverTextBox; 
+    let draggedOverTextBox;
+    let curCanvasStateIdx = 0;  
+    let canvasStates = new Map();  
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
@@ -224,9 +230,8 @@ window.onload = () =>{
     textObjects.push(helpfulTextObj); 
     helpfulTextObj.drawTextBox(ctx, helpfulTextObj.lines);
     
+    
     // event handlers
-    addClickListenerToTab(document.querySelector(".current")); // add click listener to initial current tab 
-
     window.addEventListener("keydown" , (event) =>{ 
         if (event.key === "Enter"){
             userInput.value += SPECIAL_CHAR;
@@ -444,10 +449,62 @@ window.onload = () =>{
         pdf.rect(0, 10, width, height); 
         pdf.save("download.pdf"); 
     });
+    // this is kind of sloppy but only way I can think to do this so that I can still access the curCanvasState variable
+    // in a pass by reference environment 
+    const createTabEventListener = (tab) =>{
+        tab.addEventListener("click", ()=>{
+            const lastActiveTab = document.querySelector(".current");
+            if ( tab!== lastActiveTab){
+                lastActiveTab.classList.toggle("current");
+                const lastCanvasStateIdx = parseInt(lastActiveTab.id);
+                // create state before we clear canvas 
+                const lastCanvasState = createCanvasState(
 
-    newTab.addEventListener("click", () =>{
-        createNewTab(tabSection);
-        console.log("In newTab event handler"); 
+                    clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox
+
+                    ); 
+                canvasStates.set(lastCanvasStateIdx, lastCanvasState); 
+                tab.classList.toggle("current");
+                curCanvasStateIdx = parseInt(tab.id);
+                // load new state hashMap 
+                const newState = canvasStates.get(curCanvasStateIdx);
+                // first time seeing this state, reinit all vars 
+                if (!newState){
+                    clickX = null;
+                    clickY = null;
+                    textObjects = [];
+                    selectedTextObjects = [];
+                    lineObjects = [];
+                    linesToBoxes = new Map(); 
+                    draggedFig = null;
+                    draggedOverTextBox; 
+                }else{ // load vars from newState map 
+                    clickX = newState.get('clickX'); 
+                    clickY = newState.get('clickY'); 
+                    textObjects = newState.get('textObjects'); 
+                    selectedTextObjects = newState.get('selectedTextObjects'); 
+                    lineObjects = newState.get('lineObjects'); 
+                    linesToBoxes = newState.get('linesToBoxes'); 
+                    draggedFig = newState.get('draggedFig');
+                    draggedOverTextBox = newState.get('draggedOverTextBox'); 
+                }
+                // with all our reinitilizaed variables, draw them onto canvas 
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                lineObjects.forEach(line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+                textObjects.forEach( textbox => textbox.drawTextBox(ctx)); 
+
+            }
+            // console.log("Current Canvas State:", curCanvasState); 
+        });
+    }
+     // configure current tab -- to be dynamic 
+     document.querySelector(".current").addEventListener("click", ()=>{
+        createTabEventListener(document.querySelector(".current")); 
+    });
+    // create new tab and add an event listener to it 
+    newTab.addEventListener("click", () =>{ 
+        const tab = createNewTab(tabSection);
+        createTabEventListener(tab); 
     });
 
 
