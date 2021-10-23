@@ -454,54 +454,52 @@ window.onload = () =>{
     // in a pass by reference environment 
     const createTabEventListener = (tab) =>{
         tab.addEventListener("click", ()=>{
+            console.log("event listener being triggered on click"); 
             const lastActiveTab = document.querySelector(".current");
-            if ( tab!== lastActiveTab){
-                lastActiveTab.classList.toggle("current");
-                const lastCanvasStateIdx = parseInt(lastActiveTab.id);
-                // create state before we clear canvas 
-                const lastCanvasState = createCanvasState(
+            lastActiveTab.classList.remove("current");
+            const lastCanvasStateIdx = parseInt(lastActiveTab.id);
+            // create state before we clear canvas 
+            const lastCanvasState = createCanvasState(
 
-                    clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox
+                clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox
 
-                    ); 
-                canvasStates.set(lastCanvasStateIdx, lastCanvasState); 
-                tab.classList.toggle("current");
-                curCanvasStateIdx = parseInt(tab.id);
-                // load new state hashMap 
-                const newState = canvasStates.get(curCanvasStateIdx);
-                // first time seeing this state, reinit all vars 
-                if (!newState){
-                    clickX = null;
-                    clickY = null;
-                    textObjects = [];
-                    selectedTextObjects = [];
-                    lineObjects = [];
-                    linesToBoxes = new Map(); 
-                    draggedFig = null;
-                    draggedOverTextBox; 
-                }else{ // load vars from newState map 
-                    clickX = newState.get('clickX'); 
-                    clickY = newState.get('clickY'); 
-                    textObjects = newState.get('textObjects'); 
-                    selectedTextObjects = newState.get('selectedTextObjects'); 
-                    lineObjects = newState.get('lineObjects'); 
-                    linesToBoxes = newState.get('linesToBoxes'); 
-                    draggedFig = newState.get('draggedFig');
-                    draggedOverTextBox = newState.get('draggedOverTextBox'); 
-                }
-                // with all our reinitilizaed variables, draw them onto canvas 
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                lineObjects.forEach(line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
-                textObjects.forEach( textbox => textbox.drawTextBox(ctx)); 
-
+                ); 
+            canvasStates.set(lastCanvasStateIdx, lastCanvasState); 
+            tab.classList.add("current"); 
+            curCanvasStateIdx = parseInt(tab.id);
+            // load new state hashMap 
+            const newState = canvasStates.get(curCanvasStateIdx);
+            // first time seeing this state, reinit all vars 
+            if (!newState){
+                clickX = null;
+                clickY = null;
+                textObjects = [];
+                selectedTextObjects = [];
+                lineObjects = [];
+                linesToBoxes = new Map(); 
+                draggedFig = null;
+                draggedOverTextBox; 
+            }else{ // load vars from newState map 
+                clickX = newState.get('clickX'); 
+                clickY = newState.get('clickY'); 
+                textObjects = newState.get('textObjects'); 
+                selectedTextObjects = newState.get('selectedTextObjects'); 
+                lineObjects = newState.get('lineObjects'); 
+                linesToBoxes = newState.get('linesToBoxes'); 
+                draggedFig = newState.get('draggedFig');
+                draggedOverTextBox = newState.get('draggedOverTextBox'); 
             }
+            // with all our reinitilizaed variables, draw them onto canvas 
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            lineObjects.forEach(line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+            textObjects.forEach( textbox => textbox.drawTextBox(ctx)); 
+
+
             // console.log("Current Canvas State:", curCanvasState); 
         });
     }
      // configure current tab -- to be dynamic 
-     document.querySelector(".current").addEventListener("click", ()=>{
-        createTabEventListener(document.querySelector(".current")); 
-    });
+    createTabEventListener(document.getElementById("0")); 
     // create new tab and add an event listener to it 
     newTab.addEventListener("click", () =>{ 
         const tab = createNewTab(tabSection);
