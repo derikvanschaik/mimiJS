@@ -208,8 +208,22 @@ window.onload = () =>{
             if (draggedFig.getLinked().length){
                 
                 draggedFig.getLinked().forEach( line =>{
-                    console.log("this line is attached to",linesToBoxes.get(line).find(tbox => tbox !== draggedFig).getLines() ); 
+                    const otherBox = linesToBoxes.get(line).find(tbox => tbox !== draggedFig);
+                    const otherBoxLine = otherBox.getLinked().find( linkedLine => linkedLine === line); 
+                    // update line properties 
+                    [line, otherBoxLine].forEach( l =>{
+                        l.fromX = draggedFig.x; 
+                        l.fromY = draggedFig.y; 
+                        l.toX = otherBox.x; 
+                        l.toY = otherBox.y; 
+                    });
+                    // add newly updated line ref to lineObjects list 
+                    lineObjects.push(line); 
                 });
+                // redraw canvas with our newly added lines
+                ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
+                textObjects.forEach( t => t.drawTextBox(ctx)); 
             }
             draggedFig = null;
             draggedOverTextBox = null; 
@@ -256,20 +270,20 @@ window.onload = () =>{
     canvas.addEventListener("mousemove", (event) =>{ 
         if (draggedFig){ 
             // want to check if there are any lines on canvas of dragged fig 
-            // if (draggedFig.getLinked().length > 0 ){
-            //     const firstLine = draggedFig.getLinked()[0];
-            //     // need to delete the lines from canvas 
-            //     if (lineObjects.includes(firstLine)){
-            //         ctx.clearRect(0, 0, canvas.width, canvas.height); 
-            //         // remove reference to the lines 
-            //         draggedFig.getLinked().forEach( line =>{
-            //             lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
-            //         }); 
-            //         // redraw canvas 
-            //         lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
-            //         textObjects.forEach( t => t.drawTextBox(ctx)); 
-            //     }
-            // }
+            if (draggedFig.getLinked().length > 0 ){
+                const firstLine = draggedFig.getLinked()[0];
+                // need to delete the lines from canvas 
+                if (lineObjects.includes(firstLine)){
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); 
+                    // remove reference to the lines 
+                    draggedFig.getLinked().forEach( line =>{
+                        lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
+                    }); 
+                    // redraw canvas 
+                    lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY])); 
+                    textObjects.forEach( t => t.drawTextBox(ctx)); 
+                }
+            }
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
