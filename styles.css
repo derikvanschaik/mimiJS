@@ -30,6 +30,7 @@ button {
     font-size: 16px;
     width: 150px;
     border-radius: 1em;
+    cursor: pointer; 
 }
 #delete{
     background: lightcoral; 
@@ -53,9 +54,9 @@ input:focus {
     outline: none;
 }
 .tab{
+    background-color: grey;
+    color: white; 
     color:black;
-    background-color: beige;
-    border-color: black;
     padding-left: 10px;
     padding-right: 10px; 
     font-size: 16px;
@@ -63,6 +64,10 @@ input:focus {
     float: left;
     cursor: pointer;
     border: 0.6px solid; 
+}
+.tab.current{
+    background-color: white;
+    border-color: black;
 }
 /* .tab-section{
 } */
