@@ -14,28 +14,30 @@ body{
     /* border-radius: 2em;  */
 }
 #mimi-canvas{
-    margin: 2% 3% 2% 3%; 
     border: 2px solid black;
+    background-color: white;
 }
 button {
     margin-top: 12px;
-    margin-bottom: 12px; 
+    margin-bottom: 12px;
     background-color: #4CAF50; /* Green */
     border: none;
     color: white;
-    padding: 15px 32px;
+    padding: 5px 10px 10px 5px;
     text-align: center;
     text-decoration: none;
     display: inline-block;
     font-size: 16px;
+    width: 150px;
+    border-radius: 1em;
 }
 #delete{
     background: lightcoral; 
 }
 .mimi-container-header{
     display: grid;
-    grid-template-columns: 23% 23% 23% 23%;
-    grid-gap: 20px; 
+    grid-template-columns: 15% 15% 15% 15% 30%;
+    grid-gap: 10px; 
 }
 /* hides the input element from user */
 input{
@@ -49,4 +51,24 @@ input{
 }
 input:focus {
     outline: none;
-  }
+}
+.tab{
+    color:black;
+    background-color: beige;
+    border-color: black;
+    padding-left: 10px;
+    padding-right: 10px; 
+    font-size: 16px;
+    width: 109px;
+    float: left;
+    cursor: pointer;
+    border: 0.6px solid; 
+}
+/* .tab-section{
+} */
+.canvas-container{
+    background-color: black;
+}
+#new-tab{
+    margin-left: 50%; 
+}

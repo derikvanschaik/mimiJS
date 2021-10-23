@@ -157,6 +157,33 @@ const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{
     textBox.drawTextBox(ctx); 
 }
 
+const createNewTab = (tabRoot) =>{
+    // alter styling of root to accomodate new tab to grid layout
+    // tabRoot.style.gridTemplateColumns = "1fr 1fr";  
+    const tabDiv = document.createElement("div");
+    tabDiv.className = "tab"; 
+    const tabTitle = document.createElement("h3");
+    tabTitle.textContent = "Unititled";
+    // bind elements 
+    tabDiv.appendChild(tabTitle); 
+    tabRoot.appendChild(tabDiv);
+    console.log(document.querySelector(".tab-section").clientWidth); 
+    const totalPixelsAvailable = document.querySelector(".tab-section").clientWidth; 
+    const numOfTabs = tabRoot.childElementCount; 
+    if (numOfTabs*tabDiv.clientWidth > totalPixelsAvailable){
+        const children = Array.from(document.querySelectorAll(".tab"));
+        console.log(children);  
+        children.forEach( child =>{
+            child.style.width = `${totalPixelsAvailable/numOfTabs - 23}px`; 
+        }); 
+         
+    }
+    // // alter styling of root to accomodate new tab to grid layout
+    // tabRoot.style.gridTemplateColumns = tabRoot.style.gridTemplateColumns + " 1fr"; 
+    // console.log(tabRoot.style.gridTemplateColumns); 
+
+}
+
 window.onload = () =>{
     const userInput = document.querySelector("input"); 
     const canvas = document.getElementById("mimi-canvas");
@@ -164,7 +191,9 @@ window.onload = () =>{
     const del = document.querySelector("#delete");
     const link = document.querySelector("#link");
     const clear = document.querySelector("#clear");
-    const download = document.querySelector("#download"); 
+    const download = document.querySelector("#download");
+    const tabSection = document.querySelector(".tab-section");
+    const newTab = document.querySelector("#new-tab"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -323,10 +352,6 @@ window.onload = () =>{
     });
 
     del.addEventListener("click", ()=>{
-        // in case user pressed select all and then delete 
-        selectAll.textContent = "Select All";
-        clickX = null; 
-        clickY = null;
 
         // if there are no linked textboxes within the selected textboxes 
         if ( !selectedTextObjects.some( textbox => textbox.linkedTo) ){ 
@@ -396,7 +421,7 @@ window.onload = () =>{
         clickX = null; 
         clickY = null; 
     });
-    
+
     download.addEventListener("click", ()=> {
 
         const imgData = canvas.toDataURL("image/png", 1.0);
@@ -411,4 +436,9 @@ window.onload = () =>{
         pdf.rect(0, 10, width, height); 
         pdf.save("download.pdf"); 
     });
+
+    newTab.addEventListener("click", () =>{
+        createNewTab(tabSection);
+        console.log("In newTab event handler"); 
+    }); 
 }
