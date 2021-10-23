@@ -157,30 +157,36 @@ const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{
     textBox.drawTextBox(ctx); 
 }
 
+const addClickListenerToTab = (tab)=>{ 
+    tab.addEventListener("click", ()=>{
+        const lastActiveTab = document.querySelector(".current");
+        lastActiveTab.classList.toggle("current"); 
+        tab.classList.toggle("current");   
+    });
+}
+
 const createNewTab = (tabRoot) =>{
-    // alter styling of root to accomodate new tab to grid layout
-    // tabRoot.style.gridTemplateColumns = "1fr 1fr";  
+    // create tab div 
     const tabDiv = document.createElement("div");
-    tabDiv.className = "tab"; 
+    tabDiv.className = "tab";
+    tabDiv.id = `${tabRoot.childElementCount}`; // set id to current tab number 
     const tabTitle = document.createElement("h3");
     tabTitle.textContent = "Unititled";
+    // add click event listener 
+    addClickListenerToTab(tabDiv); 
     // bind elements 
     tabDiv.appendChild(tabTitle); 
     tabRoot.appendChild(tabDiv);
-    console.log(document.querySelector(".tab-section").clientWidth); 
+    // reformat tabs if they exceed available space  
     const totalPixelsAvailable = document.querySelector(".tab-section").clientWidth; 
-    const numOfTabs = tabRoot.childElementCount; 
+    const numOfTabs = tabRoot.childElementCount;
+
     if (numOfTabs*tabDiv.clientWidth > totalPixelsAvailable){
-        const children = Array.from(document.querySelectorAll(".tab"));
-        console.log(children);  
-        children.forEach( child =>{
-            child.style.width = `${totalPixelsAvailable/numOfTabs - 23}px`; 
+        const tabs = Array.from(document.querySelectorAll(".tab"));
+        tabs.forEach( tab =>{
+            tab.style.width = `${totalPixelsAvailable/numOfTabs - 23}px`; 
         }); 
-         
     }
-    // // alter styling of root to accomodate new tab to grid layout
-    // tabRoot.style.gridTemplateColumns = tabRoot.style.gridTemplateColumns + " 1fr"; 
-    // console.log(tabRoot.style.gridTemplateColumns); 
 
 }
 
@@ -193,7 +199,7 @@ window.onload = () =>{
     const clear = document.querySelector("#clear");
     const download = document.querySelector("#download");
     const tabSection = document.querySelector(".tab-section");
-    const newTab = document.querySelector("#new-tab"); 
+    const newTab = document.querySelector("#new-tab");
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -219,6 +225,8 @@ window.onload = () =>{
     helpfulTextObj.drawTextBox(ctx, helpfulTextObj.lines);
     
     // event handlers
+    addClickListenerToTab(document.querySelector(".current")); // add click listener to initial current tab 
+
     window.addEventListener("keydown" , (event) =>{ 
         if (event.key === "Enter"){
             userInput.value += SPECIAL_CHAR;
@@ -440,5 +448,7 @@ window.onload = () =>{
     newTab.addEventListener("click", () =>{
         createNewTab(tabSection);
         console.log("In newTab event handler"); 
-    }); 
+    });
+
+
 }
