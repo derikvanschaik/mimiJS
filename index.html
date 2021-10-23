@@ -10,17 +10,15 @@
     <title>Mimi | js</title> 
 </head>
 <body>
-    <!-- <header class="page-header"> 
-        <h1>MIMI js</h1>
-        <p>Your soon to be <i>favorite</i> mindmapping application, now in your browser!</p>
-    </header> -->
+
     <div class="mimi-container">
         <div class="mimi-container-header">
-            <button id="delete">Delete</button>
-            <button id="clear">Clear</button>
-            <button id = "link">Link</button>
-            <button id="download">Save in PDF format</button> 
-            <button id="new-tab">New Tab</button> 
+            <button class="nav-button" id="delete">Delete</button> 
+            <button class = "nav-button" id="clear">Clear</button>
+            <button class = "nav-button" id = "link">Link</button>
+            <button class = "nav-button" id="download">Save in PDF format</button> 
+            <button class = "nav-button" id="new-tab">New Tab</button>
+            <button class = "nav-button" id="rename-tab">Rename</button> 
         </div>
         <div class="tab-section">
             <div class="tab current" id="0"><h3>Untitled</h3></div> 
@@ -28,8 +26,19 @@
         <div class = "canvas-container">
             <canvas id="mimi-canvas" width="1639" height="696"></canvas> 
         </div>
-        
-        <input/>
+        <input id="user-input">
+    </div>
+
+    <!-- The Modal -->
+    <div class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="modal-component"> 
+        </div>
+        </div>
+    
     </div>
     
 </body>

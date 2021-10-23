@@ -117,7 +117,6 @@ const drawLine = (ctx, from, to) =>{
     ctx.stroke();
 }
 
-
 // returns true if cur and other are slightly overlapping 
 const areOverLapping = (ctx, cur, other) =>{
     const [curW, curH] = cur.getBoxDimensions(ctx); 
@@ -163,7 +162,7 @@ const createNewTab = (tabRoot) =>{
     tabDiv.className = "tab";
     tabDiv.id = `${tabRoot.childElementCount}`; // set id to current tab number 
     const tabTitle = document.createElement("h3");
-    tabTitle.textContent = "Unititled";
+    tabTitle.textContent = "Untitled";
     // bind elements 
     tabDiv.appendChild(tabTitle); 
     tabRoot.appendChild(tabDiv);
@@ -203,7 +202,7 @@ const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lin
 }
 
 window.onload = () =>{
-    const userInput = document.querySelector("input"); 
+    const userInput = document.querySelector("#user-input"); 
     const canvas = document.getElementById("mimi-canvas");
     const ctx = canvas.getContext("2d");
     const del = document.querySelector("#delete");
@@ -212,6 +211,9 @@ window.onload = () =>{
     const download = document.querySelector("#download");
     const tabSection = document.querySelector(".tab-section");
     const newTab = document.querySelector("#new-tab");
+    const renameTab = document.querySelector("#rename-tab");
+    const closeModal = document.getElementsByClassName("close")[0]; 
+    const modal = document.querySelector(".modal");
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -502,5 +504,20 @@ window.onload = () =>{
         resizeTabs(tabSection, tab);  
         createTabEventListener(tab); 
     });
-    
+
+    renameTab.addEventListener("click", ()=>{
+        const modalComponent = document.querySelector("#modal-component"); 
+        modalComponent.replaceChildren(); 
+        const newParagraph = document.createElement("p"); 
+        newParagraph.textContent = "dynamically created"; 
+        modalComponent.appendChild(newParagraph); 
+        // open the modal 
+        modal.style.display = "block";
+    });
+
+    closeModal.addEventListener("click", () =>{
+        // close the modal 
+        modal.style.display = "none"; 
+    }); 
+
 }
