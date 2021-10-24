@@ -156,11 +156,11 @@ const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{
     textBox.drawTextBox(ctx); 
 }
 
-const createNewTab = (tabRoot) =>{
+const createNewTab = (tabRoot, tabId) =>{
     // create tab div 
     const tabDiv = document.createElement("div");
     tabDiv.className = "tab";
-    tabDiv.id = `${tabRoot.childElementCount}`; // set id to current tab number 
+    tabDiv.id = `${tabId}`; // set id to unique tabId
     const tabTitle = document.createElement("h3");
     tabTitle.textContent = "Untitled";
     // bind elements 
@@ -181,6 +181,14 @@ const resizeTabs = (tabRoot, tabDiv) =>{
         }); 
     }
 }
+const deleteTab = (curTab, tabRoot) =>{
+    tabRoot.removeChild(curTab); 
+}
+
+const selectLastTab = (tabList) =>{
+    tabList[tabList.length -1].click(); 
+}
+
 // clears the canvas, draws the lines and textboxes onto canvas. 
 const drawCanvas = (ctx, canvas, lineObjects, textObjects) =>{ 
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
@@ -214,11 +222,13 @@ window.onload = () =>{
     const renameTab = document.querySelector("#rename-tab");
     const closeModal = document.getElementsByClassName("close")[0]; 
     const modal = document.querySelector(".modal");
+    const closeTab = document.querySelector("#close-tab"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
 
     const SPECIAL_CHAR = '~'; // special character we will split lines by
+    let TAB_ID = 0; // creates unique tab ids for the tabs 
     let clickX, clickY;
     let textObjects = [];
     let selectedTextObjects = [];
@@ -456,7 +466,7 @@ window.onload = () =>{
     const createTabEventListener = (tab) =>{
         tab.addEventListener("click", ()=>{
             console.log("event listener being triggered on click"); 
-            const lastActiveTab = document.querySelector(".current");
+            const lastActiveTab = document.querySelector(".current"); 
             lastActiveTab.classList.remove("current");
             const lastCanvasStateIdx = parseInt(lastActiveTab.id);
             // create state before we clear canvas 
@@ -500,7 +510,7 @@ window.onload = () =>{
     // create new tab and add an event listener to it 
     newTab.addEventListener("click", () =>{
         // tabSection is the tabRoot element 
-        const tab = createNewTab(tabSection);
+        const tab = createNewTab(tabSection, ++TAB_ID); 
         resizeTabs(tabSection, tab);  
         createTabEventListener(tab); 
     });
@@ -540,6 +550,20 @@ window.onload = () =>{
     closeModal.addEventListener("click", () =>{
         // close the modal 
         modal.style.display = "none"; 
+    });
+
+    closeTab.addEventListener("click", ()=>{
+        const curTab = document.getElementById(`${curCanvasStateIdx}`);
+        const tabRoot = document.querySelector(".tab-section"); 
+        const numOfTabs = tabRoot.childElementCount;
+        // don't want user to be able to close tab when there is only one tab present
+        if (numOfTabs === 1){
+            return console.log("Cannot close tab when there is only one tab open"); 
+        }
+        const tabs = document.querySelectorAll(".tab");
+        const tabsWithoutCurTab = Array.from(tabs).filter(el => el!== curTab); 
+        selectLastTab(tabsWithoutCurTab); // selects last tab on tablist goes into event handler we created for this tab earlier on 
+        deleteTab(curTab, tabRoot); // removes tab from tabs --> need to delete after selecting other tab 
     }); 
 
 }
