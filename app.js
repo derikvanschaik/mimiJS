@@ -208,6 +208,14 @@ const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lin
     stateHash.set('draggedOverTextBox', draggedOverTextBox); 
     return stateHash; 
 }
+const createErrorModal = (modalComponent, errorMessage) =>{
+    // since we re use this component there may be previous elements bound to it
+    // so we delete them 
+    modalComponent.replaceChildren(); 
+    const errorTitle = document.createElement("h3"); 
+    errorTitle.textContent = errorMessage; 
+    modalComponent.appendChild(errorTitle); 
+}
 
 window.onload = () =>{
     const userInput = document.querySelector("#user-input"); 
@@ -417,7 +425,9 @@ window.onload = () =>{
 
     link.addEventListener("click", ()=>{
         if (selectedTextObjects.length !== 2){
-            return console.log("can only link 2 text objects at a time"); 
+            const errorMessage = "Can Only Link 2 Text Objects at a time";
+            createErrorModal(document.querySelector("#modal-component"), errorMessage); // create error modal
+            return modal.style.display = "block"; // make modal visible 
         }
         const [textOne, textTwo] = selectedTextObjects;
         // init a line object 
@@ -558,7 +568,9 @@ window.onload = () =>{
         const numOfTabs = tabRoot.childElementCount;
         // don't want user to be able to close tab when there is only one tab present
         if (numOfTabs === 1){
-            return console.log("Cannot close tab when there is only one tab open"); 
+            const errorMessage = "Cannot close tab when it is the only tab open.";
+            createErrorModal(document.querySelector("#modal-component"), errorMessage); // create error modal
+            return modal.style.display = "block"; // make modal visible 
         }
         const tabs = document.querySelectorAll(".tab");
         const tabsWithoutCurTab = Array.from(tabs).filter(el => el!== curTab); 
