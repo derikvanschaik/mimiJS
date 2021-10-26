@@ -334,6 +334,13 @@ window.onload = () =>{
             // reset the drag path 
             return existingTextObject.dragPath = []; 
         }
+        // check to see if user clicked on a hotlink 
+        if (hotLinksOn){
+            if( existingTextObject.hotLink !== null){
+                const redirectToTabId = existingTextObject.hotLink;
+                return document.getElementById(`${redirectToTabId}`).click(); // select tab   
+            }
+        }
         // user clicked on an already existing box 
         existingTextObject.toggleSelected(); 
 
@@ -605,12 +612,12 @@ window.onload = () =>{
         // get current canvas state 
         const backToState = curCanvasStateIdx; 
         // grab last selected item 
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY)); 
         // set selected hotLink property to be the id of the newly created tab 
-        existingTextObject.hotLink = TAB_ID; 
+        existingTextObject.hotLink = ++TAB_ID; // post increment tabid variable 
         // rename tab to be the name of the hotlinked tab  
         const newTabName = existingTextObject.getLines().join("");
-        const tab = createNewTab(tabSection, ++TAB_ID, tabName = newTabName); 
+        const tab = createNewTab(tabSection,TAB_ID, tabName = newTabName); 
         resizeTabs(tabSection, tab);  
         createTabEventListener(tab);
         // select the new tab 
@@ -631,7 +638,8 @@ window.onload = () =>{
     toggleHotLink.addEventListener("click", ()=>{
         // toggle the current hotlinks state
         hotLinksOn = !hotLinksOn;
-        // redraw the state of canvas 
+        // redraw the state of canvas
+        drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn); 
     }); 
 
 }
