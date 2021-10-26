@@ -21,6 +21,7 @@ class TextObject{
         this.lines = ['']; // default
         this.selected = false;
         this.linkedTo = [];
+        this.dragPath = []; 
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -306,13 +307,19 @@ window.onload = () =>{
         [clickX, clickY] = getCursorPosition(canvas, event);
         clearInput(userInput);
 
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));  
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
 
         if (!existingTextObject){
             const newTextBox = new TextObject(clickX, clickY);  
             textObjects.push(newTextBox);
             newTextBox.drawTextBox(ctx);  
             return userInput.focus(); 
+        }
+        // check if there was a drag path -> if there was then this existing textbox was just dragged and this event
+        // was only triggered because they dropped the object. We do not want to count this as a 'toggle' event. 
+        if (existingTextObject.dragPath.length > 0){
+            // reset the drag path 
+            return existingTextObject.dragPath = []; 
         }
         // user clicked on an already existing box 
         existingTextObject.toggleSelected(); 
@@ -356,8 +363,11 @@ window.onload = () =>{
 
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
+            // add to drag path if there was a change in position of the textbox 
+            if (Math.abs(clickX - lastClickX) >= 1 && Math.abs(clickY-lastClickY) >=1 ){
+                draggedFig.dragPath.push([clickX, clickY]); 
+            }
             
-
             const overlappedTextBox = getOverLappedTextBox(ctx, textObjects, draggedFig);
 
             if(!draggedOverTextBox){
