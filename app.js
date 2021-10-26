@@ -201,7 +201,6 @@ const selectLastTab = (tabList) =>{
 
 // clears the canvas, draws the lines and textboxes onto canvas. 
 const drawCanvas = (ctx, canvas, lineObjects, textObjects, hotLinkState) =>{
-    console.log("hotlinkstate", hotLinkState); 
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
     textObjects.forEach( t => t.drawTextBox(ctx, hotLinkState)); 
@@ -308,7 +307,7 @@ window.onload = () =>{
                     
                 });
                 // redraw canvas with our newly added lines
-                drawCanvas(ctx, canvas, lineObjects, textObjects); 
+                drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
             }
             draggedFig = null;
             draggedOverTextBox = null; 
@@ -377,7 +376,7 @@ window.onload = () =>{
                         lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
                     }); 
                     // redraw canvas 
-                    drawCanvas(ctx, canvas, lineObjects, textObjects); 
+                    drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
                 }
             }
 
@@ -447,7 +446,7 @@ window.onload = () =>{
             // remove all textobjects in textobjects array that are also in selected textObjects 
             textObjects = textObjects.filter( textObj => !selectedTextObjects.includes(textObj));
             // re-draw canvas
-            drawCanvas(ctx, canvas, lineObjects, textObjects); 
+            drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
         } 
         selectedTextObjects = []; 
         clearInput(userInput);
