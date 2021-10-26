@@ -21,7 +21,8 @@ class TextObject{
         this.lines = ['']; // default
         this.selected = false;
         this.linkedTo = [];
-        this.dragPath = []; 
+        this.dragPath = [];
+        this.hotLink = null; // explicitly set as null as this is a number -> 0 can evaluate to false 
     }
     replaceLines(newLines){ 
         this.lines = newLines; 
@@ -62,10 +63,14 @@ class TextObject{
         const [_, height] = getFontDimensions(ctx, text); 
         ctx.fillText(text , this.x, this.y + height*lineNum); 
     }
-    drawLines(ctx){
+    drawLines(ctx, hotLinkOn){
+        if(hotLinkOn && (this.hotLink !== null) ){ 
+            ctx.fillStyle = "purple"; 
+        }
         this.lines.forEach((line, idx) =>{
             this.drawLine(ctx, idx, line);
-        }); 
+        });
+        ctx.fillStyle = "#000000"; 
     }
     clearBoxRect(ctx){ 
         const text = this.getMaxLine(); 
@@ -76,21 +81,25 @@ class TextObject{
         const pad = 15 + ctx.lineWidth; 
         ctx.clearRect(this.x - ctx.lineWidth , this.y - pad , w + pad + 2 , lineHeight* (this.lines.length) + 2);   
     }
-    drawBox(ctx){
+    drawBox(ctx, hotLinkOn){ // hotlinkon variable is passed in through the drawBoxMethod 
         const text = this.getMaxLine(); 
         const [w, lineHeight] = getFontDimensions(ctx, text);
         const pad = 15;
         if (this.isSelected()){
             ctx.strokeStyle = "red"; 
         }
+        if(hotLinkOn && (this.hotLink !== null) ){ 
+            console.log("drawing different type colored box for hotlinkon state"); 
+            ctx.strokeStyle = "purple"; 
+        }
         ctx.strokeRect(this.x, this.y - pad, w + pad , lineHeight* (this.lines.length));
         ctx.strokeStyle = "#000000"; 
          
     }
-    drawTextBox(ctx){ 
+    drawTextBox(ctx, hotLinkOn){ 
         this.clearBoxRect(ctx);
-        this.drawLines(ctx);
-        this.drawBox(ctx);  
+        this.drawLines(ctx, hotLinkOn); 
+        this.drawBox(ctx, hotLinkOn);  
     }
     isSelected(){
         return this.selected === true;   
@@ -157,13 +166,13 @@ const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{
     textBox.drawTextBox(ctx); 
 }
 
-const createNewTab = (tabRoot, tabId) =>{
+const createNewTab = (tabRoot, tabId, tabName = "Untitled") =>{
     // create tab div 
     const tabDiv = document.createElement("div");
     tabDiv.className = "tab";
     tabDiv.id = `${tabId}`; // set id to unique tabId
     const tabTitle = document.createElement("h3");
-    tabTitle.textContent = "Untitled";
+    tabTitle.textContent = tabName;
     // bind elements 
     tabDiv.appendChild(tabTitle); 
     tabRoot.appendChild(tabDiv);
@@ -191,10 +200,11 @@ const selectLastTab = (tabList) =>{
 }
 
 // clears the canvas, draws the lines and textboxes onto canvas. 
-const drawCanvas = (ctx, canvas, lineObjects, textObjects) =>{ 
+const drawCanvas = (ctx, canvas, lineObjects, textObjects, hotLinkState) =>{
+    console.log("hotlinkstate", hotLinkState); 
     ctx.clearRect(0, 0, canvas.width, canvas.height); 
     lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
-    textObjects.forEach( t => t.drawTextBox(ctx));
+    textObjects.forEach( t => t.drawTextBox(ctx, hotLinkState)); 
 }
 // returns hashMap of all current data structures etc, 
 const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox) =>{
@@ -231,7 +241,9 @@ window.onload = () =>{
     const renameTab = document.querySelector("#rename-tab");
     const closeModal = document.getElementsByClassName("close")[0]; 
     const modal = document.querySelector(".modal");
-    const closeTab = document.querySelector("#close-tab"); 
+    const closeTab = document.querySelector("#close-tab");
+    const makeHotLink = document.querySelector("#make-hotlink");
+    const toggleHotLink = document.querySelector("#toggle-hotlinks"); 
 
     // Canvas configurations 
     ctx.font = "15pt Comic Sans MS";
@@ -246,7 +258,8 @@ window.onload = () =>{
     let draggedFig;
     let draggedOverTextBox;
     let curCanvasStateIdx = 0;  
-    let canvasStates = new Map();  
+    let canvasStates = new Map();
+    let hotLinksOn = false; 
 
     // HELP FOR THE USER 
     const helpfulTextObj = new TextObject(400,100); 
@@ -485,7 +498,7 @@ window.onload = () =>{
     // in a pass by reference environment 
     const createTabEventListener = (tab) =>{
         tab.addEventListener("click", ()=>{
-            console.log("event listener being triggered on click"); 
+
             const lastActiveTab = document.querySelector(".current"); 
             lastActiveTab.classList.remove("current");
             const lastCanvasStateIdx = parseInt(lastActiveTab.id);
@@ -521,7 +534,7 @@ window.onload = () =>{
                 draggedOverTextBox = newState.get('draggedOverTextBox'); 
             }
             // with all our reinitilizaed variables, draw them onto canvas 
-            drawCanvas(ctx, canvas, lineObjects, textObjects);
+            drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);
             // console.log("Current Canvas State:", curCanvasState); 
         });
     }
@@ -586,6 +599,39 @@ window.onload = () =>{
         const tabsWithoutCurTab = Array.from(tabs).filter(el => el!== curTab); 
         selectLastTab(tabsWithoutCurTab); // selects last tab on tablist goes into event handler we created for this tab earlier on 
         deleteTab(curTab, tabRoot); // removes tab from tabs --> need to delete after selecting other tab 
+    });
+
+    makeHotLink.addEventListener("click", ()=>{
+        // get current canvas state 
+        const backToState = curCanvasStateIdx; 
+        // grab last selected item 
+        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        // set selected hotLink property to be the id of the newly created tab 
+        existingTextObject.hotLink = TAB_ID; 
+        // rename tab to be the name of the hotlinked tab  
+        const newTabName = existingTextObject.getLines().join("");
+        const tab = createNewTab(tabSection, ++TAB_ID, tabName = newTabName); 
+        resizeTabs(tabSection, tab);  
+        createTabEventListener(tab);
+        // select the new tab 
+        tab.click();
+        // draw new tab and link the tab links etc 
+        const pad = 15;
+        const offset = 5; 
+        const navBackTextObject = new TextObject(0 + offset, pad + offset); // have this textbox be in top left corner of canvas -> remember the padding of 15 we make so need to offset
+        navBackTextObject.replaceLines([`Back to ${backToState}`]); 
+        navBackTextObject.hotLink = backToState; 
+        textObjects.push(navBackTextObject);
+        // change hotlink state automatically 
+        hotLinksOn = true;
+        toggleHotLink.checked = true;  
+        drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
+    });
+
+    toggleHotLink.addEventListener("click", ()=>{
+        // toggle the current hotlinks state
+        hotLinksOn = !hotLinksOn;
+        // redraw the state of canvas 
     }); 
 
 }
