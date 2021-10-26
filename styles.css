@@ -36,7 +36,7 @@ button{
 }
 .mimi-container-header{
     display: grid;
-    grid-template-columns: 10% 10% 10% 10% 22% 20% 10%;
+    grid-template-columns: 10% 10% 10% 10% 10% 20% 10% 10%;
     grid-gap: 15px; 
 }
 /* hides the input element from user */

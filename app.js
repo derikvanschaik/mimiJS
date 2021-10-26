@@ -198,6 +198,10 @@ const deleteTab = (curTab, tabRoot) =>{
 const selectLastTab = (tabList) =>{
     tabList[tabList.length -1].click(); 
 }
+// tabs are divs with an h3 child element whose textcontent is the name 
+const getTabName = (tab) =>{
+    return tab.firstChild.textContent; 
+}
 
 // clears the canvas, draws the lines and textboxes onto canvas. 
 const drawCanvas = (ctx, canvas, lineObjects, textObjects, hotLinkState) =>{
@@ -206,7 +210,7 @@ const drawCanvas = (ctx, canvas, lineObjects, textObjects, hotLinkState) =>{
     textObjects.forEach( t => t.drawTextBox(ctx, hotLinkState)); 
 }
 // returns hashMap of all current data structures etc, 
-const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox) =>{
+const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox, stateName) =>{
     const stateHash = new Map(); 
     stateHash.set('clickX', clickX); 
     stateHash.set('clickY', clickY); 
@@ -215,7 +219,8 @@ const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lin
     stateHash.set('lineObjects', lineObjects); 
     stateHash.set('linesToBoxes', linesToBoxes); 
     stateHash.set('draggedFig', draggedFig); 
-    stateHash.set('draggedOverTextBox', draggedOverTextBox); 
+    stateHash.set('draggedOverTextBox', draggedOverTextBox);
+    stateHash.set('stateName', stateName); 
     return stateHash; 
 }
 const createErrorModal = (modalComponent, errorMessage) =>{
@@ -290,7 +295,7 @@ window.onload = () =>{
             if (draggedFig.getLinked().length){
                 
                 draggedFig.getLinked().forEach( line =>{
-                    console.log("canvas", curCanvasStateIdx, "lines to boxes = ", linesToBoxes); 
+                    
                     const otherBox = linesToBoxes.get(line).find(tbox => tbox !== draggedFig);
                     const otherBoxLine = otherBox.getLinked().find( linkedLine => linkedLine === line); 
                     // update line properties 
@@ -508,10 +513,11 @@ window.onload = () =>{
             const lastActiveTab = document.querySelector(".current"); 
             lastActiveTab.classList.remove("current");
             const lastCanvasStateIdx = parseInt(lastActiveTab.id);
+            const tabName = getTabName(lastActiveTab); 
             // create state before we clear canvas 
             const lastCanvasState = createCanvasState(
 
-                clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox
+                clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox, tabName, 
 
                 ); 
             canvasStates.set(lastCanvasStateIdx, lastCanvasState); 
@@ -625,7 +631,8 @@ window.onload = () =>{
         const pad = 15;
         const offset = 5; 
         const navBackTextObject = new TextObject(0 + offset, pad + offset); // have this textbox be in top left corner of canvas -> remember the padding of 15 we make so need to offset
-        navBackTextObject.replaceLines([`Back to ${backToState}`]); 
+        const backTabName = canvasStates.get(backToState).get('stateName'); 
+        navBackTextObject.replaceLines([`Back to ${backTabName}`]); 
         navBackTextObject.hotLink = backToState; 
         textObjects.push(navBackTextObject);
         // change hotlink state automatically 
