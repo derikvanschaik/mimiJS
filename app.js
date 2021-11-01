@@ -309,10 +309,13 @@ window.onload = () =>{
     
     // event handlers
     window.addEventListener("keydown" , (event) =>{ 
+        // when user types the enter key we want to move the nextLine down one line level (create a new line effect)
         if (event.key === "Enter"){
+            // append split input value by our special char (symbol for return carriage character)
             userInput.value += SPECIAL_CHAR;
-            const existingTextObject = textObjects.find(textObj => textObj.x === clickX && textObj.y === clickY); 
             const newLines = userInput.value.split(SPECIAL_CHAR);
+            // get the textbox being typed into, replace its lines with newly created lines and redraw textbox 
+            const existingTextObject = getSelectedTextObject(textObjects, ctx, clickX, clickY); 
             existingTextObject.replaceLines(newLines); 
             existingTextObject.drawTextBox(ctx); 
         } 
@@ -391,7 +394,7 @@ window.onload = () =>{
 
     canvas.addEventListener("mousedown", (event) =>{
         [clickX, clickY] = getCursorPosition(canvas, event);
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        const existingTextObject = getSelectedTextObject(textObjects, ctx, clickX, clickY); 
         // user is clicking to create new textbox not drag or select a currenty existing one. 
         if (!existingTextObject){
             return; 
@@ -433,7 +436,7 @@ window.onload = () =>{
 
     userInput.addEventListener("input", ()=>{
 
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        const existingTextObject = getSelectedTextObject(textObjects, ctx, clickX, clickY); 
         clickX = existingTextObject.x; 
         clickY = existingTextObject.y;  
         existingTextObject.clearBoxRect(ctx); 
@@ -664,7 +667,7 @@ window.onload = () =>{
     toggleHotLink.addEventListener("click", ()=>{
         // toggle the current hotlinks state
         hotLinksOn = !hotLinksOn;
-        // redraw the state of canvas
+        // redraw the state of canvas 
         drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn); 
     }); 
 
