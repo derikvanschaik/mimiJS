@@ -209,6 +209,35 @@ const drawCanvas = (ctx, canvas, lineObjects, textObjects, hotLinkState) =>{
     lineObjects.forEach( line => drawLine(ctx, [line.fromX, line.fromY], [line.toX, line.toY]));
     textObjects.forEach( t => t.drawTextBox(ctx, hotLinkState)); 
 }
+// Purpose: deletes lines from line objects list, redraws the canvas with newly filtered lineobjects list
+// RETURNS: list of line objects 
+const deleteConnectedLines = (draggedFig, ctx, canvas, lineObjects, textObjects, hotLinksOn) =>{
+    const firstLine = draggedFig.getLinked()[0];
+    // need to delete the lines from canvas 
+    if (lineObjects.includes(firstLine)){
+        // remove reference to the lines 
+        draggedFig.getLinked().forEach( line =>{
+            lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
+        }); 
+        // redraw canvas 
+        drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
+    }
+    return lineObjects; 
+}
+// Purpose: appends array of new X and Y points to dragPath list if there was a change in its current location
+// RETURNS: Undefined 
+const updateDragPath = (draggedFig, lastClickX, lastClickY, clickX, clickY) =>{
+    if (Math.abs(clickX - lastClickX) >= 1 && Math.abs(clickY-lastClickY) >=1 ){
+        draggedFig.dragPath.push([clickX, clickY]); 
+    }
+}
+// Purpose: returns textObject that was last clicked 
+// RETURNS: textObject if a textbox was selected or undefined if no textbox in textObjects array was selected. 
+const getSelectedTextObject = (textObjects, ctx, clickX, clickY) =>{ 
+    const selectedTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+    console.log("Selected textObject:", selectedTextObject); 
+    return selectedTextObject; 
+}
 // returns hashMap of all current data structures etc, 
 const createCanvasState = (clickX, clickY, textObjects, selectedTextObjects, lineObjects, linesToBoxes, draggedFig, draggedOverTextBox, stateName) =>{
     const stateHash = new Map(); 
@@ -231,6 +260,7 @@ const createErrorModal = (modalComponent, errorMessage) =>{
     errorTitle.textContent = errorMessage; 
     modalComponent.appendChild(errorTitle); 
 }
+
 
 window.onload = () =>{
     const userInput = document.querySelector("#user-input"); 
@@ -270,7 +300,7 @@ window.onload = () =>{
     helpfulTextObj.lines = [
         "To make a textbox, click anywhere and begin typing.",
         "To delete, click on the textbox and press 'delete' ", 
-        "To add more text to me, click on textbox and begin typing"
+        "To add more text to me, click on textbox and begin typing" 
     ];
      
     textObjects.push(helpfulTextObj); 
@@ -324,7 +354,7 @@ window.onload = () =>{
         [clickX, clickY] = getCursorPosition(canvas, event);
         clearInput(userInput);
 
-        const existingTextObject = textObjects.find(textObj => textObj.inBbox(ctx, clickX, clickY));
+        const existingTextObject = getSelectedTextObject(textObjects, ctx, clickX, clickY); 
 
         if (!existingTextObject){
             const newTextBox = new TextObject(clickX, clickY);  
@@ -369,29 +399,19 @@ window.onload = () =>{
         draggedFig = existingTextObject;
     });
 
-    canvas.addEventListener("mousemove", (event) =>{ 
+    canvas.addEventListener("mousemove", (event) =>{
+        // User is dragging a textObject 
         if (draggedFig){ 
-            // want to check if there are any lines on canvas of dragged fig 
+            // if there are any lines connected to dragged figure we want to check if we have deleted those lines.
             if (draggedFig.getLinked().length > 0 ){
-                const firstLine = draggedFig.getLinked()[0];
-                // need to delete the lines from canvas 
-                if (lineObjects.includes(firstLine)){
-                    // remove reference to the lines 
-                    draggedFig.getLinked().forEach( line =>{
-                        lineObjects = lineObjects.filter(lineObj => lineObj !== line); 
-                    }); 
-                    // redraw canvas 
-                    drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn);  
-                }
-            }
-
-            const [lastClickX, lastClickY] = [clickX, clickY]; 
-            [clickX, clickY] = getCursorPosition(canvas, event);
-            // add to drag path if there was a change in position of the textbox 
-            if (Math.abs(clickX - lastClickX) >= 1 && Math.abs(clickY-lastClickY) >=1 ){
-                draggedFig.dragPath.push([clickX, clickY]); 
+                // want to delete these connected lines 
+                lineObjects = deleteConnectedLines(draggedFig, ctx, canvas, lineObjects, textObjects, hotLinksOn); 
             }
             
+            const [lastClickX, lastClickY] = [clickX, clickY]; 
+            [clickX, clickY] = getCursorPosition(canvas, event);
+            updateDragPath(draggedFig, lastClickX, lastClickY, clickX, clickY); 
+
             const overlappedTextBox = getOverLappedTextBox(ctx, textObjects, draggedFig);
 
             if(!draggedOverTextBox){
