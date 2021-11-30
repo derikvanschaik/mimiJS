@@ -7,116 +7,6 @@ const getCursorPosition = (canvas, event) => {
 const clearInput = (inputEl) =>{ 
     inputEl.value = ""; 
 }
-// returns width and height of text 
-const getFontDimensions = (ctx, text) =>{
-    const metrics = ctx.measureText(text);  
-    const width = metrics.width;
-    const height = Math.abs(metrics.fontBoundingBoxAscent) + Math.abs(metrics.fontBoundingBoxDescent);
-    return [width, height];  
-}
-class TextObject{
-    constructor(x, y){ 
-        this.x = x; 
-        this.y = y;
-        this.lines = ['']; // default
-        this.selected = false;
-        this.linkedTo = [];
-        this.dragPath = [];
-        this.hotLink = null; // explicitly set as null as this is a number -> 0 can evaluate to false 
-    }
-    replaceLines(newLines){ 
-        this.lines = newLines; 
-    }
-    getLastLine(){
-        return this.lines[this.lines.length -1]; 
-    }
-    replaceLastLine(text){ 
-        this.lines[this.lines.length -1 ] = text; 
-    }
-    getLines(){
-        return this.lines; 
-    }
-    appendToLines(newLine){
-        this.lines.push(newLine); 
-    }
-    getMaxLineWidthIdx(){
-        const lengths = this.lines.map(str => str.length); 
-        const maxLength = Math.max(...lengths);
-        return lengths.indexOf(maxLength); 
-    }
-    getMaxLine(){
-        return this.lines[ this.getMaxLineWidthIdx() ]; 
-    }
-    // returns width and height of box 
-    getBoxDimensions(ctx){
-        const text = this.getMaxLine();  
-        const [w, lineHeight] = getFontDimensions(ctx, text);
-        const h = lineHeight * this.lines.length;
-        return [w, h]; 
-    }
-    inBbox(ctx, x, y){
-        const [w, h] = this.getBoxDimensions(ctx);  
-        const pad = 15;  
-        return x >= this.x && x <= this.x + w + pad && y >= this.y - pad && y <= this.y + h -pad;       
-    }
-    drawLine(ctx, lineNum, text){
-        const [_, height] = getFontDimensions(ctx, text); 
-        ctx.fillText(text , this.x, this.y + height*lineNum); 
-    }
-    drawLines(ctx, hotLinkOn){
-        if(hotLinkOn && (this.hotLink !== null) ){ 
-            ctx.fillStyle = "purple"; 
-        }
-        this.lines.forEach((line, idx) =>{
-            this.drawLine(ctx, idx, line);
-        });
-        ctx.fillStyle = "#000000"; 
-    }
-    clearBoxRect(ctx){ 
-        const text = this.getMaxLine(); 
-        const [w, lineHeight] = getFontDimensions(ctx, text);
-        // clear rect needs a bit more padding than stroke rect so that's what these magic 
-        // numbers are about, I found them through experimentation but I imagine its because 
-        // of the clear rect doesn't acount for line width of the actual box 
-        const pad = 15 + ctx.lineWidth; 
-        ctx.clearRect(this.x - ctx.lineWidth , this.y - pad , w + pad + 2 , lineHeight* (this.lines.length) + 2);   
-    }
-    drawBox(ctx, hotLinkOn){ // hotlinkon variable is passed in through the drawBoxMethod 
-        const text = this.getMaxLine(); 
-        const [w, lineHeight] = getFontDimensions(ctx, text);
-        const pad = 15;
-        if (this.isSelected()){
-            ctx.strokeStyle = "red"; 
-        }
-        if(hotLinkOn && (this.hotLink !== null) ){ 
-            console.log("drawing different type colored box for hotlinkon state"); 
-            ctx.strokeStyle = "purple"; 
-        }
-        ctx.strokeRect(this.x, this.y - pad, w + pad , lineHeight* (this.lines.length));
-        ctx.strokeStyle = "#000000"; 
-         
-    }
-    drawTextBox(ctx, hotLinkOn){ 
-        this.clearBoxRect(ctx);
-        this.drawLines(ctx, hotLinkOn); 
-        this.drawBox(ctx, hotLinkOn);  
-    }
-    isSelected(){
-        return this.selected === true;   
-    }
-    toggleSelected(){
-        this.selected = !this.selected; 
-    }
-    removeLinked(line){
-        this.linkedTo = this.linkedTo.filter(curLine => curLine !== line); 
-    }
-    addLinked(line){
-        this.linkedTo.push(line); 
-    }
-    getLinked(){
-        return this.linkedTo; 
-    }
-}
 
 const drawLine = (ctx, from, to) =>{ 
     const [from_x, from_y] = from; 
@@ -151,10 +41,6 @@ const areOverLapping = (ctx, cur, other) =>{
     return overlap; 
 }
 
-const getOverLappedTextBox = (ctx, textObjects, draggedFig) =>{
-    const otherTextBoxes = textObjects.filter(t=> t !== draggedFig); 
-    return otherTextBoxes.find(t => areOverLapping(ctx, t, draggedFig)); 
-}
 // relocates textobject to new position by deleting textObject at last location and redrawing at updated location.
 // Updates textObject's location properties. 
 const relocateTextObject = (ctx, textBox, x, y, lastX, lastY) =>{ 
@@ -261,8 +147,12 @@ const createErrorModal = (modalComponent, errorMessage) =>{
     modalComponent.appendChild(errorTitle); 
 }
 
+ // import modules 
+ import {TextObject} from './modules/textbox.js'; 
 
 window.onload = () =>{
+   
+    // grab html element refs 
     const userInput = document.querySelector("#user-input"); 
     const canvas = document.getElementById("mimi-canvas");
     const ctx = canvas.getContext("2d");
@@ -280,7 +170,9 @@ window.onload = () =>{
     const toggleHotLink = document.querySelector("#toggle-hotlinks"); 
 
     // Canvas configurations 
-    ctx.font = "15pt Comic Sans MS";
+    ctx.font = "20pt Arial"; 
+    // VERY IMPORTANT CONFIGURATION FOR DRAWING TEXTBOXES 
+    ctx.textBaseline = 'top'; 
 
     const SPECIAL_CHAR = '~'; // special character we will split lines by
     let TAB_ID = 0; // creates unique tab ids for the tabs 
@@ -413,23 +305,14 @@ window.onload = () =>{
             
             const [lastClickX, lastClickY] = [clickX, clickY]; 
             [clickX, clickY] = getCursorPosition(canvas, event);
-            updateDragPath(draggedFig, lastClickX, lastClickY, clickX, clickY); 
+            updateDragPath(draggedFig, lastClickX, lastClickY, clickX, clickY);
+            relocateTextObject(ctx, draggedFig, clickX, clickY, lastClickX, lastClickY);
+            // redraw entire canvas 
+            drawCanvas(ctx, canvas, lineObjects, textObjects, hotLinksOn); 
 
-            const overlappedTextBox = getOverLappedTextBox(ctx, textObjects, draggedFig);
-
-            if(!draggedOverTextBox){
-                draggedOverTextBox = overlappedTextBox; 
-            }
-            if (draggedOverTextBox){
-                draggedOverTextBox.drawTextBox(ctx); 
-            }
-            relocateTextObject(ctx, draggedFig, clickX, clickY, lastClickX, lastClickY); 
-
-            if (draggedOverTextBox !== overlappedTextBox){
-                // redraw dragged over textbox 
-                draggedOverTextBox.drawTextBox(ctx); 
-                draggedOverTextBox = overlappedTextBox; 
-            }
+            // just for preference to user visual --> redraws textobject over others.  
+            draggedFig.clearBoxRect(ctx)
+            draggedFig.drawTextBox(ctx)
              
         }
     }); 
