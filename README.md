@@ -1,6 +1,3 @@
-# Live Code (some changes in styling, no changes in logic of application:
-https://creativez.one/
-
 # mimiJS
 Making MIMI in JavaScript. 
 # Youtube Demo (As of Oct 26): https://www.youtube.com/watch?v=vex3QRE3PVQ&t=29s
